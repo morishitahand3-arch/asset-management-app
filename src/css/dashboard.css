@@ -1,0 +1,210 @@
+/* Dashboard Specific Styles */
+
+/* Total Value Card */
+.total-value-card {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+    color: var(--text-inverse);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.total-value-label {
+    font-size: var(--font-size-base);
+    opacity: 0.9;
+    margin-bottom: var(--spacing-sm);
+}
+
+.total-value-amount {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+}
+
+/* Asset Type Summary */
+.asset-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+@media (min-width: 768px) {
+    .asset-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .asset-summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.asset-summary-card {
+    background-color: var(--bg-primary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.asset-summary-icon {
+    font-size: var(--font-size-2xl);
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+}
+
+.asset-summary-icon.cash {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.asset-summary-icon.stock {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.asset-summary-icon.fund {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.asset-summary-icon.crypto {
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+.asset-summary-content {
+    flex: 1;
+}
+
+.asset-summary-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.asset-summary-value {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.asset-summary-percentage {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    margin-top: var(--spacing-xs);
+}
+
+/* Chart Container */
+.chart-container {
+    background-color: var(--bg-primary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-xl);
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 300px;
+}
+
+/* Profit/Loss Summary */
+.profit-loss-card {
+    background-color: var(--bg-primary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-xl);
+}
+
+.profit-loss-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profit-loss-item:last-child {
+    border-bottom: none;
+}
+
+.profit-loss-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.profit-loss-value {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-xs);
+}
+
+.profit-loss-amount {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.profit-loss-amount.positive {
+    color: var(--success-color);
+}
+
+.profit-loss-amount.negative {
+    color: var(--danger-color);
+}
+
+.profit-loss-percentage {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+/* Recent Assets */
+.recent-assets-list {
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.recent-asset-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+.recent-asset-item:last-child {
+    border-bottom: none;
+}
+
+.recent-asset-item:hover {
+    background-color: var(--bg-secondary);
+}
+
+.recent-asset-info {
+    flex: 1;
+}
+
+.recent-asset-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.recent-asset-type {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.recent-asset-value {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+}
