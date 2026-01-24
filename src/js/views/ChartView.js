@@ -113,27 +113,39 @@ export class ChartView {
     }
 
     // 棒グラフ生成
-    renderBarChart(canvasId, chartData) {
-        return this.renderChart(canvasId, chartData, {
-            type: 'bar',
-            chartOptions: {
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+    renderBarChart(canvasId, chartData, stacked = false) {
+        const chartOptions = {
+            plugins: {
+                legend: {
+                    display: stacked, // 積み上げグラフの場合は凡例を表示
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                x: {
+                    stacked: stacked
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return '¥' + new Intl.NumberFormat('ja-JP').format(value);
-                            }
+                y: {
+                    stacked: stacked,
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '¥' + new Intl.NumberFormat('ja-JP').format(value);
                         }
                     }
                 }
             }
+        };
+
+        return this.renderChart(canvasId, chartData, {
+            type: 'bar',
+            chartOptions
         });
+    }
+
+    // 積み上げ棒グラフ生成
+    renderStackedBarChart(canvasId, chartData) {
+        return this.renderBarChart(canvasId, chartData, true);
     }
 
     // グラフを更新

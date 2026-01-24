@@ -332,21 +332,40 @@ export class CalculationService {
         return null;
     }
 
-    // 月次推移グラフ用のデータを生成
+    // 月次推移グラフ用のデータを生成（積み上げ棒グラフ）
     generateMonthlyChartData(monthlyHistory) {
         if (!monthlyHistory || monthlyHistory.length === 0) {
             return null;
         }
 
+        const labels = monthlyHistory.map(item => item.label);
+
+        // カテゴリごとのデータセットを準備
+        const categories = [
+            { key: CHART_CATEGORIES.CASH, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.CASH], color: { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgba(16, 185, 129, 1)' } },
+            { key: CHART_CATEGORIES.STOCK_JP, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.STOCK_JP], color: { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' } },
+            { key: CHART_CATEGORIES.STOCK_US, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.STOCK_US], color: { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgba(99, 102, 241, 1)' } },
+            { key: CHART_CATEGORIES.FUND, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.FUND], color: { bg: 'rgba(245, 158, 11, 0.8)', border: 'rgba(245, 158, 11, 1)' } },
+            { key: CHART_CATEGORIES.CRYPTO, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.CRYPTO], color: { bg: 'rgba(139, 92, 246, 0.8)', border: 'rgba(139, 92, 246, 1)' } }
+        ];
+
+        // 各カテゴリのデータセットを作成
+        const datasets = categories.map(category => {
+            return {
+                label: category.label,
+                data: monthlyHistory.map(item => {
+                    // breakdownからカテゴリの値を取得、なければ0
+                    return item.breakdown && item.breakdown[category.key] ? item.breakdown[category.key] : 0;
+                }),
+                backgroundColor: category.color.bg,
+                borderColor: category.color.border,
+                borderWidth: 1
+            };
+        });
+
         return {
-            labels: monthlyHistory.map(item => item.label),
-            datasets: [{
-                label: '総資産額',
-                data: monthlyHistory.map(item => item.value),
-                backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                borderColor: 'rgba(59, 130, 246, 1)',
-                borderWidth: 2
-            }]
+            labels,
+            datasets
         };
     }
 }

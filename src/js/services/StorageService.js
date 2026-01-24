@@ -178,18 +178,24 @@ export class StorageService {
         }
     }
 
-    // 履歴スナップショットを保存
-    saveHistorySnapshot(totalValue) {
+    // 履歴スナップショットを保存（カテゴリ別内訳付き）
+    saveHistorySnapshot(totalValue, breakdown = {}) {
         try {
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
             const history = this.getHistory();
 
+            const snapshot = {
+                date: today,
+                value: totalValue,
+                breakdown: breakdown // カテゴリ別の内訳
+            };
+
             // 今日のデータが既にある場合は上書き
             const existingIndex = history.findIndex(item => item.date === today);
             if (existingIndex >= 0) {
-                history[existingIndex].value = totalValue;
+                history[existingIndex] = snapshot;
             } else {
-                history.push({ date: today, value: totalValue });
+                history.push(snapshot);
             }
 
             // 古いデータを削除（過去13ヶ月分のみ保持）
@@ -227,7 +233,7 @@ export class StorageService {
         }
     }
 
-    // 月次集計データを取得
+    // 月次集計データを取得（カテゴリ別内訳付き）
     getMonthlyHistory(months = 12) {
         const history = this.getHistory();
         if (history.length === 0) return [];
@@ -255,6 +261,7 @@ export class StorageService {
                     month,
                     label: `${year}/${month}`,
                     value: latestData.value,
+                    breakdown: latestData.breakdown || {}, // カテゴリ別内訳
                     date: latestData.date
                 });
             } else {
@@ -264,6 +271,7 @@ export class StorageService {
                     month,
                     label: `${year}/${month}`,
                     value: 0,
+                    breakdown: {},
                     date: null
                 });
             }

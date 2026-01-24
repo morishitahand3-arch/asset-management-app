@@ -21,9 +21,10 @@ export class DashboardController {
         const assets = assetService.getAllAssets();
         const stats = calculationService.getAssetStats(assets);
 
-        // 履歴スナップショットを保存
+        // 履歴スナップショットを保存（カテゴリ別内訳付き）
         if (stats.totalValue > 0) {
-            storageService.saveHistorySnapshot(stats.totalValue);
+            const breakdown = calculationService.aggregateByChartCategory(assets);
+            storageService.saveHistorySnapshot(stats.totalValue, breakdown);
         }
 
         this.view.render(stats);
@@ -48,7 +49,7 @@ export class DashboardController {
         }
     }
 
-    // 月次推移グラフを描画
+    // 月次推移グラフを描画（積み上げ棒グラフ）
     renderMonthlyChart() {
         const monthlyHistory = storageService.getMonthlyHistory(12);
         const chartData = calculationService.generateMonthlyChartData(monthlyHistory);
@@ -56,7 +57,7 @@ export class DashboardController {
         if (chartData) {
             // DOMの準備ができてから描画
             setTimeout(() => {
-                this.monthlyChartView.renderBarChart('monthly-trend-chart', chartData);
+                this.monthlyChartView.renderStackedBarChart('monthly-trend-chart', chartData);
             }, 150);
         }
     }
@@ -165,9 +166,10 @@ export class DashboardController {
         const assets = assetService.getAllAssets();
         const stats = calculationService.getAssetStats(assets);
 
-        // 履歴スナップショットを更新
+        // 履歴スナップショットを更新（カテゴリ別内訳付き）
         if (stats.totalValue > 0) {
-            storageService.saveHistorySnapshot(stats.totalValue);
+            const breakdown = calculationService.aggregateByChartCategory(assets);
+            storageService.saveHistorySnapshot(stats.totalValue, breakdown);
         }
 
         // 資産構成グラフを更新
