@@ -1,8 +1,30 @@
 // Calculation Service - Asset calculations and aggregations
 
-import { ASSET_TYPES, ASSET_TYPE_LABELS } from '../utils/constants.js';
+import { ASSET_TYPES, ASSET_TYPE_LABELS, CHART_CATEGORIES, CHART_CATEGORY_LABELS } from '../utils/constants.js';
 
 export class CalculationService {
+    // 株式が日本株か米国株かを判定
+    isJapaneseStock(asset) {
+        if (asset.type !== ASSET_TYPES.STOCK) {
+            return false;
+        }
+
+        // exchangeフィールドがある場合
+        if (asset.exchange) {
+            return asset.exchange.toUpperCase() === 'TSE' ||
+                   asset.exchange.toUpperCase() === 'TYO' ||
+                   asset.exchange.toUpperCase() === 'TOKYO';
+        }
+
+        // tickerから判定（数字のみなら日本株）
+        if (asset.ticker) {
+            return /^\d+$/.test(asset.ticker);
+        }
+
+        // デフォルトは日本株
+        return true;
+    }
+
     // 総資産額を計算
     calculateTotalValue(assets) {
         return assets.reduce((total, asset) => {
@@ -22,6 +44,38 @@ export class CalculationService {
         assets.forEach(asset => {
             if (aggregation.hasOwnProperty(asset.type)) {
                 aggregation[asset.type] += asset.getCurrentValue();
+            }
+        });
+
+        return aggregation;
+    }
+
+    // グラフ用カテゴリ別に集計（株式を日本株・米国株に分類）
+    aggregateByChartCategory(assets) {
+        const aggregation = {
+            [CHART_CATEGORIES.CASH]: 0,
+            [CHART_CATEGORIES.STOCK_JP]: 0,
+            [CHART_CATEGORIES.STOCK_US]: 0,
+            [CHART_CATEGORIES.FUND]: 0,
+            [CHART_CATEGORIES.CRYPTO]: 0
+        };
+
+        assets.forEach(asset => {
+            const value = asset.getCurrentValue();
+
+            if (asset.type === ASSET_TYPES.CASH) {
+                aggregation[CHART_CATEGORIES.CASH] += value;
+            } else if (asset.type === ASSET_TYPES.STOCK) {
+                // 株式は日本株・米国株に分類
+                if (this.isJapaneseStock(asset)) {
+                    aggregation[CHART_CATEGORIES.STOCK_JP] += value;
+                } else {
+                    aggregation[CHART_CATEGORIES.STOCK_US] += value;
+                }
+            } else if (asset.type === ASSET_TYPES.FUND) {
+                aggregation[CHART_CATEGORIES.FUND] += value;
+            } else if (asset.type === ASSET_TYPES.CRYPTO) {
+                aggregation[CHART_CATEGORIES.CRYPTO] += value;
             }
         });
 
@@ -211,31 +265,58 @@ export class CalculationService {
 
     // グラフ用のデータを生成
     generateChartData(assets, chartType = 'pie') {
-        const allocation = this.calculateAllocation(assets);
-
         if (chartType === 'pie' || chartType === 'doughnut') {
+            // 株式を日本株・米国株に分類して集計
+            const chartAggregation = this.aggregateByChartCategory(assets);
+            const total = this.calculateTotalValue(assets);
+
+            // 値が0より大きいカテゴリのみ抽出
+            const categories = Object.entries(chartAggregation)
+                .filter(([category, value]) => value > 0)
+                .map(([category, value]) => ({
+                    category,
+                    label: CHART_CATEGORY_LABELS[category],
+                    value,
+                    percentage: total > 0 ? (value / total) * 100 : 0
+                }));
+
+            // 色の定義
+            const colorMap = {
+                [CHART_CATEGORIES.CASH]: {
+                    bg: 'rgba(16, 185, 129, 0.8)',
+                    border: 'rgba(16, 185, 129, 1)'
+                },
+                [CHART_CATEGORIES.STOCK_JP]: {
+                    bg: 'rgba(59, 130, 246, 0.8)',
+                    border: 'rgba(59, 130, 246, 1)'
+                },
+                [CHART_CATEGORIES.STOCK_US]: {
+                    bg: 'rgba(99, 102, 241, 0.8)',
+                    border: 'rgba(99, 102, 241, 1)'
+                },
+                [CHART_CATEGORIES.FUND]: {
+                    bg: 'rgba(245, 158, 11, 0.8)',
+                    border: 'rgba(245, 158, 11, 1)'
+                },
+                [CHART_CATEGORIES.CRYPTO]: {
+                    bg: 'rgba(139, 92, 246, 0.8)',
+                    border: 'rgba(139, 92, 246, 1)'
+                }
+            };
+
             return {
-                labels: allocation.map(item => item.label),
+                labels: categories.map(item => item.label),
                 datasets: [{
-                    data: allocation.map(item => item.value),
-                    backgroundColor: [
-                        'rgba(16, 185, 129, 0.8)',   // Cash - Green
-                        'rgba(59, 130, 246, 0.8)',   // Stock - Blue
-                        'rgba(245, 158, 11, 0.8)',   // Fund - Orange
-                        'rgba(139, 92, 246, 0.8)'    // Crypto - Purple
-                    ],
-                    borderColor: [
-                        'rgba(16, 185, 129, 1)',
-                        'rgba(59, 130, 246, 1)',
-                        'rgba(245, 158, 11, 1)',
-                        'rgba(139, 92, 246, 1)'
-                    ],
+                    data: categories.map(item => item.value),
+                    backgroundColor: categories.map(item => colorMap[item.category].bg),
+                    borderColor: categories.map(item => colorMap[item.category].border),
                     borderWidth: 2
                 }]
             };
         }
 
         if (chartType === 'bar') {
+            const allocation = this.calculateAllocation(assets);
             return {
                 labels: allocation.map(item => item.label),
                 datasets: [{
@@ -249,6 +330,24 @@ export class CalculationService {
         }
 
         return null;
+    }
+
+    // 月次推移グラフ用のデータを生成
+    generateMonthlyChartData(monthlyHistory) {
+        if (!monthlyHistory || monthlyHistory.length === 0) {
+            return null;
+        }
+
+        return {
+            labels: monthlyHistory.map(item => item.label),
+            datasets: [{
+                label: '総資産額',
+                data: monthlyHistory.map(item => item.value),
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2
+            }]
+        };
     }
 }
 

@@ -29,6 +29,7 @@ export class DashboardView {
                 </div>
                 ${this.generateProfitLossCard(stats.profitLoss)}
             </div>
+            ${this.generateMonthlyTrendChart()}
             ${this.generateAggregatedAssetsList(stats.aggregatedByIdentifier)}
             ${this.generateRecentAssetsList(stats.recent)}
         `;
@@ -128,6 +129,18 @@ export class DashboardView {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 月次推移グラフ
+    generateMonthlyTrendChart() {
+        return `
+            <div class="card">
+                <h3 class="card-title">月次資産推移</h3>
+                <div class="chart-wrapper" style="height: 300px;">
+                    <canvas id="monthly-trend-chart"></canvas>
                 </div>
             </div>
         `;

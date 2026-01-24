@@ -177,6 +177,100 @@ export class StorageService {
             return false;
         }
     }
+
+    // 履歴スナップショットを保存
+    saveHistorySnapshot(totalValue) {
+        try {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+            const history = this.getHistory();
+
+            // 今日のデータが既にある場合は上書き
+            const existingIndex = history.findIndex(item => item.date === today);
+            if (existingIndex >= 0) {
+                history[existingIndex].value = totalValue;
+            } else {
+                history.push({ date: today, value: totalValue });
+            }
+
+            // 古いデータを削除（過去13ヶ月分のみ保持）
+            const thirteenMonthsAgo = new Date();
+            thirteenMonthsAgo.setMonth(thirteenMonthsAgo.getMonth() - 13);
+            const filteredHistory = history.filter(item => new Date(item.date) >= thirteenMonthsAgo);
+
+            // 日付でソート
+            filteredHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(filteredHistory));
+            return true;
+        } catch (error) {
+            console.error('Failed to save history snapshot:', error);
+            return false;
+        }
+    }
+
+    // 履歴データを取得
+    getHistory() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
+            if (!data) return [];
+
+            const history = JSON.parse(data);
+            if (!Array.isArray(history)) {
+                console.error('Invalid history format in storage');
+                return [];
+            }
+
+            return history;
+        } catch (error) {
+            console.error('Failed to get history:', error);
+            return [];
+        }
+    }
+
+    // 月次集計データを取得
+    getMonthlyHistory(months = 12) {
+        const history = this.getHistory();
+        if (history.length === 0) return [];
+
+        // 月末の値を抽出
+        const monthlyData = [];
+        const now = new Date();
+
+        for (let i = 0; i < months; i++) {
+            const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const year = targetMonth.getFullYear();
+            const month = targetMonth.getMonth() + 1;
+
+            // その月の最後の日付のデータを探す
+            const monthData = history.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate.getFullYear() === year && itemDate.getMonth() + 1 === month;
+            });
+
+            if (monthData.length > 0) {
+                // 最新の日付のデータを使用
+                const latestData = monthData[monthData.length - 1];
+                monthlyData.unshift({
+                    year,
+                    month,
+                    label: `${year}/${month}`,
+                    value: latestData.value,
+                    date: latestData.date
+                });
+            } else {
+                // データがない場合は0
+                monthlyData.unshift({
+                    year,
+                    month,
+                    label: `${year}/${month}`,
+                    value: 0,
+                    date: null
+                });
+            }
+        }
+
+        return monthlyData;
+    }
 }
 
 // シングルトンインスタンス

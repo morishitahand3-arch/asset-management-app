@@ -5,12 +5,14 @@ import { ChartView } from '../views/ChartView.js';
 import { assetService } from '../services/AssetService.js';
 import { calculationService } from '../services/CalculationService.js';
 import { bulkPriceUpdateService } from '../services/BulkPriceUpdateService.js';
+import { storageService } from '../services/StorageService.js';
 import { ASSET_TYPES } from '../utils/constants.js';
 
 export class DashboardController {
     constructor(containerId) {
         this.view = new DashboardView(containerId);
-        this.chartView = new ChartView();
+        this.allocationChartView = new ChartView();
+        this.monthlyChartView = new ChartView();
         this.onAddAssetCallback = null;
     }
 
@@ -19,24 +21,43 @@ export class DashboardController {
         const assets = assetService.getAllAssets();
         const stats = calculationService.getAssetStats(assets);
 
+        // 履歴スナップショットを保存
+        if (stats.totalValue > 0) {
+            storageService.saveHistorySnapshot(stats.totalValue);
+        }
+
         this.view.render(stats);
         this.attachEventHandlers();
 
         // グラフを描画（資産がある場合のみ）
         if (stats.totalAssets > 0) {
-            this.renderChart(assets);
+            this.renderAllocationChart(assets);
+            this.renderMonthlyChart();
         }
     }
 
-    // グラフを描画
-    renderChart(assets) {
+    // 資産構成グラフを描画
+    renderAllocationChart(assets) {
         const chartData = calculationService.generateChartData(assets, 'doughnut');
 
         if (chartData) {
             // DOMの準備ができてから描画
             setTimeout(() => {
-                this.chartView.renderDoughnutChart('asset-allocation-chart', chartData);
+                this.allocationChartView.renderDoughnutChart('asset-allocation-chart', chartData);
             }, 100);
+        }
+    }
+
+    // 月次推移グラフを描画
+    renderMonthlyChart() {
+        const monthlyHistory = storageService.getMonthlyHistory(12);
+        const chartData = calculationService.generateMonthlyChartData(monthlyHistory);
+
+        if (chartData) {
+            // DOMの準備ができてから描画
+            setTimeout(() => {
+                this.monthlyChartView.renderBarChart('monthly-trend-chart', chartData);
+            }, 150);
         }
     }
 
@@ -142,18 +163,35 @@ export class DashboardController {
     // グラフを更新
     updateChart() {
         const assets = assetService.getAllAssets();
-        const chartData = calculationService.generateChartData(assets, 'doughnut');
+        const stats = calculationService.getAssetStats(assets);
 
-        if (chartData && this.chartView.chartInstance) {
-            this.chartView.updateChart(chartData);
+        // 履歴スナップショットを更新
+        if (stats.totalValue > 0) {
+            storageService.saveHistorySnapshot(stats.totalValue);
+        }
+
+        // 資産構成グラフを更新
+        const chartData = calculationService.generateChartData(assets, 'doughnut');
+        if (chartData && this.allocationChartView.chartInstance) {
+            this.allocationChartView.updateChart(chartData);
         } else {
-            this.renderChart(assets);
+            this.renderAllocationChart(assets);
+        }
+
+        // 月次推移グラフを更新
+        const monthlyHistory = storageService.getMonthlyHistory(12);
+        const monthlyChartData = calculationService.generateMonthlyChartData(monthlyHistory);
+        if (monthlyChartData && this.monthlyChartView.chartInstance) {
+            this.monthlyChartView.updateChart(monthlyChartData);
+        } else {
+            this.renderMonthlyChart();
         }
     }
 
     // グラフを破棄
     destroyChart() {
-        this.chartView.destroyChart();
+        this.allocationChartView.destroyChart();
+        this.monthlyChartView.destroyChart();
     }
 
     // コールバック設定
