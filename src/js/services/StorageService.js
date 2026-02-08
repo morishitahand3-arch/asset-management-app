@@ -112,6 +112,17 @@ export class StorageService {
         return assets.filter(a => a.type === type);
     }
 
+    // すべての資産データを削除
+    deleteAllAssets() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify([]));
+            return true;
+        } catch (error) {
+            console.error('Failed to delete all assets:', error);
+            return false;
+        }
+    }
+
     // すべてのデータをクリア
     clearAll() {
         try {

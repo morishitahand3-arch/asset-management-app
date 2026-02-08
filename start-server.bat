@@ -13,6 +13,6 @@ echo.
 echo ======================================
 echo.
 
-python -m http.server 8000
+python server.py
 
 pause

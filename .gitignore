@@ -1,0 +1,8 @@
+# 個人データ
+*.csv
+
+# 一時ファイル
+nul
+
+# Claude設定
+.claude/

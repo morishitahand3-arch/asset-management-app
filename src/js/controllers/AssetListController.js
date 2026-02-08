@@ -2,6 +2,7 @@
 
 import { AssetListView } from '../views/AssetListView.js';
 import { assetService } from '../services/AssetService.js';
+import { csvImportService } from '../services/CsvImportService.js';
 
 export class AssetListController {
     constructor(containerId) {
@@ -104,7 +105,23 @@ export class AssetListController {
                 this.clearSearchAndFilter();
                 return;
             }
+
+            // CSVインポートボタン
+            if (target.id === 'csv-import-btn') {
+                const fileInput = newContainer.querySelector('#csv-file-input');
+                if (fileInput) fileInput.click();
+                return;
+            }
         });
+
+        // CSVファイル選択
+        const csvFileInput = newContainer.querySelector('#csv-file-input');
+        if (csvFileInput) {
+            csvFileInput.addEventListener('change', (e) => {
+                this.handleCsvImport(e.target.files[0]);
+                e.target.value = '';
+            });
+        }
 
         // 検索（inputイベントは委譲できないので直接アタッチ）
         const searchInput = newContainer.querySelector('#asset-search');
@@ -223,6 +240,34 @@ export class AssetListController {
         if (this.onAddCallback) {
             this.onAddCallback();
         }
+    }
+
+    // CSVインポート処理
+    handleCsvImport(file) {
+        if (!file) return;
+
+        if (!confirm('既存の資産データをすべて削除し、CSVの内容で置き換えます。よろしいですか？')) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const result = csvImportService.importFromCSV(e.target.result);
+                this.showToast(
+                    `CSVインポート完了: ${result.total}行 → ${result.saved}件の資産を登録`,
+                    'success'
+                );
+                this.renderList();
+                if (this.onDeleteCallback) {
+                    this.onDeleteCallback(); // ダッシュボード再描画用
+                }
+            } catch (error) {
+                console.error('CSV import failed:', error);
+                this.showToast(`インポート失敗: ${error.message}`, 'error');
+            }
+        };
+        reader.readAsText(file, 'Shift_JIS');
     }
 
     // 検索・フィルタをクリア

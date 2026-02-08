@@ -83,6 +83,10 @@ export class AssetListView {
                             <option value="value_desc">金額（高い順）</option>
                             <option value="value_asc">金額（低い順）</option>
                         </select>
+                        <button class="btn btn-sm btn-secondary" id="csv-import-btn" title="CSVインポート">
+                            📥 CSVインポート
+                        </button>
+                        <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
                     </div>
                 ` : ''}
             </div>
@@ -255,9 +259,15 @@ export class AssetListView {
             <div class="empty-state">
                 <div class="empty-state-icon">📊</div>
                 <div class="empty-state-text">${message}</div>
-                <button class="btn btn-primary" id="add-first-asset">
-                    最初の資産を登録
-                </button>
+                <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="add-first-asset">
+                        最初の資産を登録
+                    </button>
+                    <button class="btn btn-secondary" id="csv-import-btn">
+                        📥 CSVインポート
+                    </button>
+                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                </div>
             </div>
         `;
     }
