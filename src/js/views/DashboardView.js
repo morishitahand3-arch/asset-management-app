@@ -41,7 +41,7 @@ export class DashboardView {
     generateTotalValueCard(totalValue) {
         return `
             <div class="total-value-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="total-value-header">
                     <div>
                         <div class="total-value-label">総資産額</div>
                         <div class="total-value-amount">${formatters.formatCurrency(totalValue)}</div>

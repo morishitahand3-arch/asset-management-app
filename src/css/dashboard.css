@@ -10,6 +10,20 @@
     margin-bottom: var(--spacing-xl);
 }
 
+.total-value-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (max-width: 480px) {
+    .total-value-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+}
+
 .total-value-label {
     font-size: var(--font-size-base);
     opacity: 0.9;
