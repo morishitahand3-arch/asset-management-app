@@ -139,11 +139,13 @@ export class StorageService {
     exportData() {
         const assets = this.getAllAssets();
         const settings = this.getSettings();
+        const history = this.getHistory();
         return {
             version: APP_VERSION,
             exportDate: new Date().toISOString(),
             assets,
-            settings
+            settings,
+            history
         };
     }
 
@@ -158,6 +160,10 @@ export class StorageService {
 
             if (data.settings) {
                 localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
+            }
+
+            if (data.history && Array.isArray(data.history)) {
+                localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(data.history));
             }
 
             return true;

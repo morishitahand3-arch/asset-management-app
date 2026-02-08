@@ -3,6 +3,7 @@
 import { DashboardController } from './controllers/DashboardController.js';
 import { AssetFormController } from './controllers/AssetFormController.js';
 import { AssetListController } from './controllers/AssetListController.js';
+import { SettingsView } from './views/SettingsView.js';
 
 class App {
     constructor() {
@@ -11,6 +12,7 @@ class App {
         this.assetListController = new AssetListController('assets-content');
         this.newAssetFormController = new AssetFormController('form-content');
         this.editAssetFormController = new AssetFormController('edit-form-content');
+        this.settingsView = new SettingsView('settings-content');
 
         this.init();
     }
@@ -114,7 +116,8 @@ class App {
             'dashboard': 'dashboard-view',
             'assets': 'assets-view',
             'new-asset': 'new-asset-view',
-            'edit-asset': 'edit-asset-view'
+            'edit-asset': 'edit-asset-view',
+            'settings': 'settings-view'
         };
 
         const targetViewId = viewIdMap[viewName];
@@ -157,6 +160,11 @@ class App {
                 case 'edit-asset':
                     console.log('Edit asset view (no auto-render)');
                     // 編集フォームは showEditForm で個別に表示
+                    break;
+
+                case 'settings':
+                    console.log('Rendering settings...');
+                    this.settingsView.render();
                     break;
 
                 default:

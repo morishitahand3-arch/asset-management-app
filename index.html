@@ -23,6 +23,7 @@
                     <button class="nav-btn" data-view="dashboard">ダッシュボード</button>
                     <button class="nav-btn" data-view="assets">資産一覧</button>
                     <button class="nav-btn" data-view="new-asset">新規登録</button>
+                    <button class="nav-btn" data-view="settings">設定</button>
                 </nav>
             </div>
         </header>
@@ -42,6 +43,10 @@
                     <a href="#" class="sidebar-link" data-view="new-asset">
                         <span class="sidebar-icon">➕</span>
                         <span class="sidebar-text">新規登録</span>
+                    </a>
+                    <a href="#" class="sidebar-link" data-view="settings">
+                        <span class="sidebar-icon">⚙️</span>
+                        <span class="sidebar-text">設定</span>
                     </a>
                 </nav>
             </aside>
@@ -70,6 +75,12 @@
                 <div class="view" id="edit-asset-view" data-view="edit-asset" style="display: none;">
                     <h2 class="view-title">資産編集</h2>
                     <div id="edit-form-content"></div>
+                </div>
+
+                <!-- Settings View -->
+                <div class="view" id="settings-view" data-view="settings" style="display: none;">
+                    <h2 class="view-title">設定</h2>
+                    <div id="settings-content"></div>
                 </div>
             </main>
         </div>

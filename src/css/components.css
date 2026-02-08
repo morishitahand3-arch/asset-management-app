@@ -174,12 +174,14 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     transform: translateY(150%);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, visibility 0.3s ease;
     z-index: 1000;
+    visibility: hidden;
 }
 
 .toast.show {
     transform: translateY(0);
+    visibility: visible;
 }
 
 .toast.success {
