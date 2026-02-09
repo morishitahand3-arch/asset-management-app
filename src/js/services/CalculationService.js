@@ -11,9 +11,16 @@ export class CalculationService {
 
         // exchangeフィールドがある場合
         if (asset.exchange) {
-            return asset.exchange.toUpperCase() === 'TSE' ||
-                   asset.exchange.toUpperCase() === 'TYO' ||
-                   asset.exchange.toUpperCase() === 'TOKYO';
+            const ex = asset.exchange.toUpperCase();
+            if (ex === 'TSE' || ex === 'TYO' || ex === 'TOKYO' ||
+                ex === 'JP' || ex === 'JPX' || ex === 'JASDAQ' || ex === 'MOTHERS') {
+                return true;
+            }
+            // 日本の取引所でない場合でも、ティッカーが数字のみなら日本株と判定
+            if (asset.ticker && /^\d+$/.test(asset.ticker)) {
+                return true;
+            }
+            return false;
         }
 
         // tickerから判定（数字のみなら日本株）
