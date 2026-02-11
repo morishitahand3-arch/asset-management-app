@@ -26,6 +26,21 @@
     .asset-type-option .type-icon {
         font-size: var(--font-size-xl);
     }
+
+    /* フォーム内の入力欄+ボタン横並びを縦積みに */
+    .form-group > div[style*="display: flex"] {
+        flex-wrap: wrap !important;
+    }
+
+    .form-group > div[style*="display: flex"] > .form-input {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+    }
+
+    .form-group > div[style*="display: flex"] > .btn {
+        flex: 1 1 auto;
+        margin-top: var(--spacing-xs);
+    }
 }
 
 /* Tablet (480px - 1023px) */
