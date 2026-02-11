@@ -31,10 +31,9 @@ export class BulkPriceUpdateService {
         try {
             const allAssets = assetService.getAllAssets();
 
-            // 価格取得が必要な資産のみフィルタ
+            // 価格取得が必要な資産のみフィルタ（投資信託は自動取得の精度が低いため除外）
             const updatableAssets = allAssets.filter(asset =>
                 asset.type === ASSET_TYPES.STOCK ||
-                asset.type === ASSET_TYPES.FUND ||
                 asset.type === ASSET_TYPES.CRYPTO
             );
 
