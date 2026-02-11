@@ -194,6 +194,19 @@ export class AssetListView {
                         </a>
                     </div>
                 `);
+            } else {
+                // ファンドコードがない場合、ファンド名で検索するリンクを表示
+                details.push(`
+                    <div>
+                        <a href="https://finance.yahoo.co.jp/search/?query=${encodeURIComponent(asset.name)}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           style="color: var(--primary-color); text-decoration: none; font-size: var(--font-size-sm); display: inline-flex; align-items: center; gap: 4px;"
+                           onclick="event.stopPropagation();">
+                            🔍 Yahoo Finance で検索
+                        </a>
+                    </div>
+                `);
             }
             if (asset.quantity) {
                 details.push(`<div>口数: ${formatters.formatNumber(asset.quantity, 0)}口</div>`);

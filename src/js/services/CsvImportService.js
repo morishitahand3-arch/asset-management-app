@@ -203,6 +203,10 @@ class CsvImportService {
                 // 既存資産を更新（IDを引き継ぐ）
                 assetData.id = existing.id;
                 assetData.createdAt = existing.createdAt;
+                // CSVにファンドコードがない場合、既存のファンドコードを引き継ぐ
+                if (assetData.type === 'fund' && !assetData.fundCode && existing.fundCode) {
+                    assetData.fundCode = existing.fundCode;
+                }
                 existingMap.delete(key);
                 updatedCount++;
             }
