@@ -115,12 +115,12 @@
 
 .input-with-button {
     display: flex;
-    gap: var(--spacing-sm);
+    flex-direction: column;
+    gap: var(--spacing-xs);
 }
 
 .input-with-button > .form-input {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
 }
 
 .form-textarea {

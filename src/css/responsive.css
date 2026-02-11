@@ -27,18 +27,7 @@
         font-size: var(--font-size-xl);
     }
 
-    /* フォーム内の入力欄+ボタン横並びを縦積みに */
-    .input-with-button {
-        flex-wrap: wrap;
-    }
 
-    .input-with-button > .form-input {
-        flex: 1 1 100%;
-    }
-
-    .input-with-button > .btn {
-        margin-top: var(--spacing-xs);
-    }
 }
 
 /* Tablet (480px - 1023px) */
