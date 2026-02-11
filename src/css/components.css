@@ -113,6 +113,16 @@
     margin-top: var(--spacing-xs);
 }
 
+.input-with-button {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.input-with-button > .form-input {
+    flex: 1;
+    min-width: 0;
+}
+
 .form-textarea {
     resize: vertical;
     min-height: 80px;

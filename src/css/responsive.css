@@ -28,17 +28,15 @@
     }
 
     /* フォーム内の入力欄+ボタン横並びを縦積みに */
-    .form-group > div[style*="display: flex"] {
-        flex-wrap: wrap !important;
+    .input-with-button {
+        flex-wrap: wrap;
     }
 
-    .form-group > div[style*="display: flex"] > .form-input {
-        flex: 1 1 100% !important;
-        min-width: 0 !important;
+    .input-with-button > .form-input {
+        flex: 1 1 100%;
     }
 
-    .form-group > div[style*="display: flex"] > .btn {
-        flex: 1 1 auto;
+    .input-with-button > .btn {
         margin-top: var(--spacing-xs);
     }
 }

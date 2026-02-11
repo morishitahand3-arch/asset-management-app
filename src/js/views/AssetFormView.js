@@ -191,10 +191,10 @@ export class AssetFormView {
 
                 <div class="form-group">
                     <label class="form-label" for="currentPrice">現在価格</label>
-                    <div style="display: flex; gap: var(--spacing-sm);">
+                    <div class="input-with-button">
                         <input type="number" id="currentPrice" name="currentPrice" class="form-input"
                                placeholder="2800" step="0.01" min="0"
-                               value="${data.currentPrice || ''}" style="flex: 1;">
+                               value="${data.currentPrice || ''}">
                         <button type="button" class="btn btn-secondary btn-sm fetch-price-btn" id="fetch-stock-price">
                             🔄 取得
                         </button>
@@ -225,10 +225,10 @@ export class AssetFormView {
 
                 <div class="form-group">
                     <label class="form-label" for="fundCode">ファンドコード</label>
-                    <div style="display: flex; gap: var(--spacing-sm);">
+                    <div class="input-with-button">
                         <input type="text" id="fundCode" name="fundCode" class="form-input"
                                placeholder="例: 03311187"
-                               value="${data.fundCode || ''}" style="flex: 1;">
+                               value="${data.fundCode || ''}">
                         <button type="button" class="btn btn-secondary btn-sm" id="open-fund-site"
                                 title="基準価額を確認" ${!data.fundCode ? 'disabled' : ''}>
                             🔗 確認
@@ -272,10 +272,10 @@ export class AssetFormView {
 
                 <div class="form-group">
                     <label class="form-label" for="currentPrice">現在基準価額</label>
-                    <div style="display: flex; gap: var(--spacing-sm);">
+                    <div class="input-with-button">
                         <input type="number" id="currentPrice" name="currentPrice" class="form-input"
                                placeholder="40122" step="0.01" min="0"
-                               value="${data.currentPrice || ''}" style="flex: 1;">
+                               value="${data.currentPrice || ''}">
                         <button type="button" class="btn btn-secondary btn-sm" id="open-fund-price-site"
                                 ${!data.fundCode ? 'disabled' : ''}>
                             🔗 確認
@@ -344,10 +344,10 @@ export class AssetFormView {
 
                 <div class="form-group">
                     <label class="form-label" for="currentPrice">現在価格（円）</label>
-                    <div style="display: flex; gap: var(--spacing-sm);">
+                    <div class="input-with-button">
                         <input type="number" id="currentPrice" name="currentPrice" class="form-input"
                                placeholder="7000000" step="0.01" min="0"
-                               value="${data.currentPrice || ''}" style="flex: 1;">
+                               value="${data.currentPrice || ''}">
                         <button type="button" class="btn btn-secondary btn-sm fetch-price-btn" id="fetch-crypto-price">
                             🔄 取得
                         </button>
