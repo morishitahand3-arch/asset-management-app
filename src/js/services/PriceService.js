@@ -185,42 +185,46 @@ export class PriceService {
             const url = `https://finance.yahoo.co.jp/quote/${fundCode}`;
             console.log('Fetching fund price from Yahoo Finance Japan:', url);
 
-            // CORSプロキシ経由でHTMLを取得
-            const proxyUrl = `${this.getCurrentProxy()}${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
+            // CORSプロキシ経由でHTMLを取得（複数プロキシをリトライ）
+            const html = await this.fetchHtmlWithProxyRetry(url);
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // 方法1: __PRELOADED_STATE__ からJSONで抽出（最も安定）
+            const stateMatch = html.match(/window\.__PRELOADED_STATE__\s*=\s*({.+?});\s*<\/script>/s);
+            if (stateMatch) {
+                try {
+                    const state = JSON.parse(stateMatch[1]);
+                    const priceStr = state?.mainFundPriceBoard?.fundPrices?.price;
+                    if (priceStr) {
+                        const price = parseFloat(priceStr.replace(/,/g, ''));
+                        if (!isNaN(price) && price > 0) {
+                            console.log('Successfully extracted fund price from __PRELOADED_STATE__:', price);
+                            return {
+                                success: true,
+                                price: price,
+                                currency: 'JPY',
+                                symbol: fundCode,
+                                source: 'Yahoo Finance Japan (__PRELOADED_STATE__)',
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+                    }
+                } catch (parseError) {
+                    console.warn('Failed to parse __PRELOADED_STATE__:', parseError);
+                }
             }
 
-            const html = await response.text();
-
-            // 基準価額を抽出（Yahoo Finance Japanのページ構造に依存）
-            // パターン1: <dd class="_3rXWJKZF">23,456</dd> のような形式
-            let priceMatch = html.match(/<dd[^>]*class="[^"]*_3rXWJKZF[^"]*"[^>]*>([\d,]+(?:\.\d+)?)<\/dd>/);
-
-            if (!priceMatch) {
-                // パターン2: より柔軟なマッチング
-                priceMatch = html.match(/基準価額[^>]*>[\s\S]*?<[^>]*>([\d,]+(?:\.\d+)?)/i);
-            }
-
-            if (!priceMatch) {
-                // パターン3: data-testid などを使った抽出
-                priceMatch = html.match(/data-testid="[^"]*price[^"]*"[^>]*>([\d,]+(?:\.\d+)?)</i);
-            }
-
+            // 方法2: HTMLから直接抽出（フォールバック）
+            const priceMatch = html.match(/基準価額[^>]*>[\s\S]*?<[^>]*>([\d,]+(?:\.\d+)?)/i);
             if (priceMatch) {
-                const priceString = priceMatch[1].replace(/,/g, '');
-                const price = parseFloat(priceString);
-
+                const price = parseFloat(priceMatch[1].replace(/,/g, ''));
                 if (!isNaN(price) && price > 0) {
-                    console.log('Successfully extracted fund price:', price);
+                    console.log('Successfully extracted fund price from HTML:', price);
                     return {
                         success: true,
                         price: price,
                         currency: 'JPY',
                         symbol: fundCode,
-                        source: 'Yahoo Finance Japan',
+                        source: 'Yahoo Finance Japan (HTML)',
                         timestamp: new Date().toISOString()
                     };
                 }
@@ -234,6 +238,38 @@ export class PriceService {
                 error: error.message
             };
         }
+    }
+
+    // HTML取得用のプロキシリトライ（テキストレスポンス用）
+    async fetchHtmlWithProxyRetry(url, maxRetries = 3) {
+        let lastError = null;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const proxyUrl = `${this.getCurrentProxy()}${encodeURIComponent(url)}`;
+                console.log(`[HTML] Attempt ${attempt + 1}: Fetching via ${this.getCurrentProxy()}`);
+
+                const response = await fetch(proxyUrl);
+
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.length > 1000) {
+                        return text;
+                    }
+                    console.warn('Response too short, might be blocked. Trying next proxy...');
+                }
+
+                this.switchToNextProxy();
+                lastError = new Error(`HTTP error! status: ${response.status}`);
+            } catch (error) {
+                console.warn('Fetch error:', error);
+                this.switchToNextProxy();
+                lastError = error;
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        throw lastError || new Error('All proxies failed');
     }
 
     // みんかぶ（投資信託）から基準価額を取得
