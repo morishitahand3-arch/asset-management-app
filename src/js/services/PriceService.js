@@ -23,7 +23,7 @@ export class PriceService {
         console.log('Switched to proxy:', this.getCurrentProxy());
     }
 
-    // ティッカーから適切なシンボルを生成（日本株 vs 米国株の判定）
+    // ティッカーから適切なシンボルを生成（日本株 vs 米国株 vs 韓国株の判定）
     getSymbolForStock(ticker) {
         if (!ticker) return null;
 
@@ -32,8 +32,13 @@ export class PriceService {
             return ticker;
         }
 
-        // 数字のみの場合は日本株と判定（例: 7203）
+        // 数字のみの場合：桁数で日本株と韓国株を判定
         if (/^\d+$/.test(ticker)) {
+            // 6桁の数字は韓国株と判定（例: 005930 = サムスン電子）
+            if (ticker.length === 6) {
+                return `${ticker}.KS`;
+            }
+            // それ以外（主に4桁）は日本株と判定（例: 7203）
             return `${ticker}.T`;
         }
 
@@ -122,11 +127,15 @@ export class PriceService {
             let price = result.meta.regularMarketPrice;
             const currency = result.meta.currency;
 
-            // USDの場合は日本円に変換
+            // USD/KRWの場合は日本円に変換
             if (currency === 'USD') {
                 const exchangeRate = await this.getExchangeRate('USD', 'JPY');
                 price = price * exchangeRate;
                 console.log(`Converted ${result.meta.regularMarketPrice} USD to ${price.toFixed(2)} JPY (rate: ${exchangeRate})`);
+            } else if (currency === 'KRW') {
+                const exchangeRate = await this.getExchangeRate('KRW', 'JPY');
+                price = price * exchangeRate;
+                console.log(`Converted ${result.meta.regularMarketPrice} KRW to ${price.toFixed(2)} JPY (rate: ${exchangeRate})`);
             }
 
             return {

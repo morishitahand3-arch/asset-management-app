@@ -3,9 +3,42 @@
 import { ASSET_TYPES, ASSET_TYPE_LABELS, CHART_CATEGORIES, CHART_CATEGORY_LABELS } from '../utils/constants.js';
 
 export class CalculationService {
+    // 株式が韓国株かを判定
+    isKoreanStock(asset) {
+        if (asset.type !== ASSET_TYPES.STOCK) {
+            return false;
+        }
+
+        // exchangeフィールドがある場合
+        if (asset.exchange) {
+            const ex = asset.exchange.toUpperCase();
+            if (ex === 'KRX' || ex === 'KOSPI' || ex === 'KOSDAQ' ||
+                ex === 'KR' || ex === 'KSE') {
+                return true;
+            }
+        }
+
+        // ティッカーにKSまたはKQサフィックスがある場合
+        if (asset.ticker && /\.(KS|KQ)$/i.test(asset.ticker)) {
+            return true;
+        }
+
+        // 6桁の数字のみの場合は韓国株と判定
+        if (asset.ticker && /^\d{6}$/.test(asset.ticker)) {
+            return true;
+        }
+
+        return false;
+    }
+
     // 株式が日本株か米国株かを判定
     isJapaneseStock(asset) {
         if (asset.type !== ASSET_TYPES.STOCK) {
+            return false;
+        }
+
+        // 韓国株の場合はfalse
+        if (this.isKoreanStock(asset)) {
             return false;
         }
 
@@ -57,12 +90,13 @@ export class CalculationService {
         return aggregation;
     }
 
-    // グラフ用カテゴリ別に集計（株式を日本株・米国株に分類）
+    // グラフ用カテゴリ別に集計（株式を日本株・米国株・韓国株に分類）
     aggregateByChartCategory(assets) {
         const aggregation = {
             [CHART_CATEGORIES.CASH]: 0,
             [CHART_CATEGORIES.STOCK_JP]: 0,
             [CHART_CATEGORIES.STOCK_US]: 0,
+            [CHART_CATEGORIES.STOCK_KR]: 0,
             [CHART_CATEGORIES.FUND]: 0,
             [CHART_CATEGORIES.CRYPTO]: 0
         };
@@ -73,8 +107,10 @@ export class CalculationService {
             if (asset.type === ASSET_TYPES.CASH) {
                 aggregation[CHART_CATEGORIES.CASH] += value;
             } else if (asset.type === ASSET_TYPES.STOCK) {
-                // 株式は日本株・米国株に分類
-                if (this.isJapaneseStock(asset)) {
+                // 株式は日本株・米国株・韓国株に分類
+                if (this.isKoreanStock(asset)) {
+                    aggregation[CHART_CATEGORIES.STOCK_KR] += value;
+                } else if (this.isJapaneseStock(asset)) {
                     aggregation[CHART_CATEGORIES.STOCK_JP] += value;
                 } else {
                     aggregation[CHART_CATEGORIES.STOCK_US] += value;
@@ -301,6 +337,10 @@ export class CalculationService {
                     bg: 'rgba(99, 102, 241, 0.8)',
                     border: 'rgba(99, 102, 241, 1)'
                 },
+                [CHART_CATEGORIES.STOCK_KR]: {
+                    bg: 'rgba(236, 72, 153, 0.8)',
+                    border: 'rgba(236, 72, 153, 1)'
+                },
                 [CHART_CATEGORIES.FUND]: {
                     bg: 'rgba(245, 158, 11, 0.8)',
                     border: 'rgba(245, 158, 11, 1)'
@@ -352,6 +392,7 @@ export class CalculationService {
             { key: CHART_CATEGORIES.CASH, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.CASH], color: { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgba(16, 185, 129, 1)' } },
             { key: CHART_CATEGORIES.STOCK_JP, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.STOCK_JP], color: { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' } },
             { key: CHART_CATEGORIES.STOCK_US, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.STOCK_US], color: { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgba(99, 102, 241, 1)' } },
+            { key: CHART_CATEGORIES.STOCK_KR, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.STOCK_KR], color: { bg: 'rgba(236, 72, 153, 0.8)', border: 'rgba(236, 72, 153, 1)' } },
             { key: CHART_CATEGORIES.FUND, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.FUND], color: { bg: 'rgba(245, 158, 11, 0.8)', border: 'rgba(245, 158, 11, 1)' } },
             { key: CHART_CATEGORIES.CRYPTO, label: CHART_CATEGORY_LABELS[CHART_CATEGORIES.CRYPTO], color: { bg: 'rgba(139, 92, 246, 0.8)', border: 'rgba(139, 92, 246, 1)' } }
         ];

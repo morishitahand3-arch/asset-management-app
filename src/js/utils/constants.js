@@ -14,11 +14,12 @@ export const ASSET_TYPE_LABELS = {
     [ASSET_TYPES.CRYPTO]: '暗号資産'
 };
 
-// グラフ表示用の詳細カテゴリ（株式を日本株・米国株に分類）
+// グラフ表示用の詳細カテゴリ（株式を日本株・米国株・韓国株に分類）
 export const CHART_CATEGORIES = {
     CASH: 'cash',
     STOCK_JP: 'stock_jp',
     STOCK_US: 'stock_us',
+    STOCK_KR: 'stock_kr',
     FUND: 'fund',
     CRYPTO: 'crypto'
 };
@@ -27,6 +28,7 @@ export const CHART_CATEGORY_LABELS = {
     [CHART_CATEGORIES.CASH]: '現金',
     [CHART_CATEGORIES.STOCK_JP]: '日本株',
     [CHART_CATEGORIES.STOCK_US]: '米国株',
+    [CHART_CATEGORIES.STOCK_KR]: '韓国株',
     [CHART_CATEGORIES.FUND]: '投資信託',
     [CHART_CATEGORIES.CRYPTO]: '暗号資産'
 };
@@ -69,13 +71,15 @@ export const FUND_CATEGORY_LABELS = {
 export const CURRENCIES = {
     JPY: 'JPY',
     USD: 'USD',
-    EUR: 'EUR'
+    EUR: 'EUR',
+    KRW: 'KRW'
 };
 
 export const CURRENCY_SYMBOLS = {
     [CURRENCIES.JPY]: '¥',
     [CURRENCIES.USD]: '$',
-    [CURRENCIES.EUR]: '€'
+    [CURRENCIES.EUR]: '€',
+    [CURRENCIES.KRW]: '₩'
 };
 
 export const STORAGE_KEYS = {

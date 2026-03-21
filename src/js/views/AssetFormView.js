@@ -158,8 +158,11 @@ export class AssetFormView {
                 <div class="form-group">
                     <label class="form-label" for="ticker">ティッカーシンボル</label>
                     <input type="text" id="ticker" name="ticker" class="form-input"
-                           placeholder="例: 7203"
+                           placeholder="例: 7203 / AAPL / 005930"
                            value="${data.ticker || ''}">
+                    <div style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: var(--spacing-xs);">
+                        4桁=日本株 / 英字=米国株 / 6桁=韓国株(KOSPI)
+                    </div>
                 </div>
             </div>
 
