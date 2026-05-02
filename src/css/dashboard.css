@@ -178,6 +178,77 @@
     color: var(--text-tertiary);
 }
 
+/* Monthly Trend Header (chart title + CSV button) */
+.monthly-trend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-sm {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+/* Monthly Trend Table */
+.monthly-table-wrapper {
+    overflow-x: auto;
+    margin-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+}
+
+.monthly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    min-width: 640px;
+}
+
+.monthly-table th {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-dark);
+    text-align: right;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.monthly-table th.monthly-table-month-col,
+.monthly-table td.monthly-table-month {
+    text-align: left;
+}
+
+.monthly-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.monthly-table td.monthly-table-total {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.monthly-table td.positive {
+    color: var(--success-color);
+    font-weight: 500;
+}
+
+.monthly-table td.negative {
+    color: var(--danger-color);
+    font-weight: 500;
+}
+
+.monthly-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.monthly-table tbody tr:hover {
+    background-color: var(--bg-secondary);
+}
+
 /* Recent Assets */
 .recent-assets-list {
     background-color: var(--bg-primary);

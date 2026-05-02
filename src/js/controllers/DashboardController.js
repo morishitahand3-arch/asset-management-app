@@ -49,17 +49,18 @@ export class DashboardController {
         }
     }
 
-    // 月次推移グラフを描画（積み上げ棒グラフ）
+    // 月次推移グラフを描画（積み上げ棒グラフ）＋テーブル
     renderMonthlyChart() {
         const monthlyHistory = storageService.getMonthlyHistory(12);
         const chartData = calculationService.generateMonthlyChartData(monthlyHistory);
 
         if (chartData) {
-            // DOMの準備ができてから描画
             setTimeout(() => {
                 this.monthlyChartView.renderStackedBarChart('monthly-trend-chart', chartData);
             }, 150);
         }
+
+        this.view.renderMonthlyTable(monthlyHistory);
     }
 
     // イベントハンドラーをアタッチ
@@ -75,6 +76,13 @@ export class DashboardController {
         if (bulkUpdateBtn) {
             bulkUpdateBtn.addEventListener('click', () => {
                 this.handleBulkPriceUpdate();
+            });
+        }
+
+        const exportCsvBtn = document.getElementById('export-monthly-csv');
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', () => {
+                this.handleExportMonthlyCSV();
             });
         }
     }
@@ -185,9 +193,65 @@ export class DashboardController {
         const monthlyChartData = calculationService.generateMonthlyChartData(monthlyHistory);
         if (monthlyChartData && this.monthlyChartView.chartInstance) {
             this.monthlyChartView.updateChart(monthlyChartData);
+            this.view.renderMonthlyTable(monthlyHistory);
         } else {
             this.renderMonthlyChart();
         }
+    }
+
+    // 月次データをCSVエクスポート
+    handleExportMonthlyCSV() {
+        const monthlyHistory = storageService.getMonthlyHistory(12);
+        if (!monthlyHistory || monthlyHistory.length === 0) {
+            this.showToast('エクスポートするデータがありません', 'error');
+            return;
+        }
+
+        const categories = [
+            { key: 'cash',     label: '現金' },
+            { key: 'stock_jp', label: '日本株' },
+            { key: 'stock_us', label: '米国株' },
+            { key: 'stock_kr', label: '韓国株' },
+            { key: 'fund',     label: '投資信託' },
+            { key: 'crypto',   label: '暗号資産' }
+        ];
+
+        const headers = ['月', '総資産', '前月比(額)', '前月比(率)', ...categories.map(c => c.label)];
+        const reversed = [...monthlyHistory].reverse();
+
+        const rows = reversed.map((item, idx) => {
+            const prevItem = reversed[idx + 1];
+            const diff = prevItem ? item.value - prevItem.value : null;
+            const diffRate = (prevItem && prevItem.value > 0) ? (diff / prevItem.value) * 100 : null;
+
+            return [
+                item.label,
+                Math.round(item.value),
+                diff !== null ? Math.round(diff) : '',
+                diffRate !== null ? `${diffRate.toFixed(2)}%` : '',
+                ...categories.map(cat => {
+                    const val = item.breakdown && item.breakdown[cat.key];
+                    return val ? Math.round(val) : 0;
+                })
+            ];
+        });
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+
+        const bom = '﻿'; // Excel用UTF-8 BOM
+        const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `資産推移_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showToast('CSVをエクスポートしました', 'success');
     }
 
     // グラフを破棄

@@ -134,14 +134,85 @@ export class DashboardView {
         `;
     }
 
-    // 月次推移グラフ
+    // 月次推移グラフ＋テーブル
     generateMonthlyTrendChart() {
         return `
             <div class="card">
-                <h3 class="card-title">月次資産推移</h3>
-                <div class="chart-wrapper" style="height: 300px;">
+                <div class="monthly-trend-header">
+                    <h3 class="card-title" style="margin-bottom: 0;">月次資産推移</h3>
+                    <button class="btn btn-secondary btn-sm" id="export-monthly-csv">📥 CSV</button>
+                </div>
+                <div class="chart-wrapper" style="height: 300px; margin-top: var(--spacing-md);">
                     <canvas id="monthly-trend-chart"></canvas>
                 </div>
+                <div id="monthly-trend-table-container"></div>
+            </div>
+        `;
+    }
+
+    // 月次推移テーブルを描画
+    renderMonthlyTable(monthlyHistory) {
+        const container = document.getElementById('monthly-trend-table-container');
+        if (!container || !monthlyHistory || monthlyHistory.length === 0) return;
+        container.innerHTML = this.generateMonthlyTableHTML(monthlyHistory);
+    }
+
+    generateMonthlyTableHTML(monthlyHistory) {
+        const categories = [
+            { key: 'cash',     label: '現金' },
+            { key: 'stock_jp', label: '日本株' },
+            { key: 'stock_us', label: '米国株' },
+            { key: 'stock_kr', label: '韓国株' },
+            { key: 'fund',     label: '投資信託' },
+            { key: 'crypto',   label: '暗号資産' }
+        ];
+
+        // 最新月が先頭になるよう逆順に並べる
+        const reversed = [...monthlyHistory].reverse();
+
+        const rows = reversed.map((item, idx) => {
+            const prevItem = reversed[idx + 1];
+            const diff = prevItem ? item.value - prevItem.value : null;
+            const diffRate = (prevItem && prevItem.value > 0) ? (diff / prevItem.value) * 100 : null;
+
+            const diffClass = diff === null ? '' : diff >= 0 ? 'positive' : 'negative';
+            const diffText = diff === null ? '-'
+                : (diff >= 0 ? '+' : '') + formatters.formatCurrency(diff);
+            const diffRateText = diffRate === null ? '-'
+                : `${diffRate >= 0 ? '+' : ''}${diffRate.toFixed(2)}%`;
+
+            const categoryTds = categories.map(cat => {
+                const val = item.breakdown && item.breakdown[cat.key];
+                return `<td class="monthly-table-cell">${val ? formatters.formatCurrency(val) : '-'}</td>`;
+            }).join('');
+
+            return `
+                <tr>
+                    <td class="monthly-table-cell monthly-table-month">${item.label}</td>
+                    <td class="monthly-table-cell monthly-table-total">${formatters.formatCurrency(item.value)}</td>
+                    <td class="monthly-table-cell ${diffClass}">${diffText}</td>
+                    <td class="monthly-table-cell ${diffClass}">${diffRateText}</td>
+                    ${categoryTds}
+                </tr>
+            `;
+        }).join('');
+
+        const categoryHeaders = categories.map(c => `<th>${c.label}</th>`).join('');
+
+        return `
+            <div class="monthly-table-wrapper">
+                <table class="monthly-table">
+                    <thead>
+                        <tr>
+                            <th class="monthly-table-month-col">月</th>
+                            <th>総資産</th>
+                            <th>前月比(額)</th>
+                            <th>前月比(率)</th>
+                            ${categoryHeaders}
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
             </div>
         `;
     }
