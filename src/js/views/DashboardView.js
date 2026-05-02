@@ -176,9 +176,9 @@ export class DashboardView {
             const diffRate = (prevItem && prevItem.value > 0) ? (diff / prevItem.value) * 100 : null;
 
             const diffClass = diff === null ? '' : diff >= 0 ? 'positive' : 'negative';
-            const diffText = diff === null ? '-'
+            const diffText = diff === null ? formatters.formatCurrency(0)
                 : (diff >= 0 ? '+' : '') + formatters.formatCurrency(diff);
-            const diffRateText = diffRate === null ? '-'
+            const diffRateText = diffRate === null ? '0.00%'
                 : `${diffRate >= 0 ? '+' : ''}${diffRate.toFixed(2)}%`;
 
             const categoryTds = categories.map(cat => {

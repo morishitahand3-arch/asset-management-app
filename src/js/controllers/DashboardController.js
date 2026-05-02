@@ -51,7 +51,7 @@ export class DashboardController {
 
     // 月次推移グラフを描画（積み上げ棒グラフ）＋テーブル
     renderMonthlyChart() {
-        const monthlyHistory = storageService.getMonthlyHistory(12);
+        const monthlyHistory = storageService.getMonthlyHistory(12).filter(item => item.value > 0);
         const chartData = calculationService.generateMonthlyChartData(monthlyHistory);
 
         if (chartData) {
@@ -189,7 +189,7 @@ export class DashboardController {
         }
 
         // 月次推移グラフを更新
-        const monthlyHistory = storageService.getMonthlyHistory(12);
+        const monthlyHistory = storageService.getMonthlyHistory(12).filter(item => item.value > 0);
         const monthlyChartData = calculationService.generateMonthlyChartData(monthlyHistory);
         if (monthlyChartData && this.monthlyChartView.chartInstance) {
             this.monthlyChartView.updateChart(monthlyChartData);
