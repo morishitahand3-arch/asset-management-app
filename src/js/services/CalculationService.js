@@ -282,6 +282,41 @@ export class CalculationService {
             .sort((a, b) => b.totalValue - a.totalValue);
     }
 
+    // ツリーマップ用データを生成
+    generateTreemapData(assets) {
+        const aggregated = this.aggregateByIdentifier(assets);
+
+        return aggregated
+            .map(item => {
+                let category;
+                if (item.type === ASSET_TYPES.CASH) {
+                    category = 'cash';
+                } else if (item.type === ASSET_TYPES.FUND) {
+                    category = 'fund';
+                } else if (item.type === ASSET_TYPES.CRYPTO) {
+                    category = 'crypto';
+                } else {
+                    const firstAsset = item.assets[0];
+                    if (this.isKoreanStock(firstAsset)) {
+                        category = 'stock_kr';
+                    } else if (this.isJapaneseStock(firstAsset)) {
+                        category = 'stock_jp';
+                    } else {
+                        category = 'stock_us';
+                    }
+                }
+
+                return {
+                    v: item.totalValue,
+                    label: item.name,
+                    category,
+                    categoryLabel: CHART_CATEGORY_LABELS[category]
+                };
+            })
+            .filter(item => item.v > 0)
+            .sort((a, b) => b.v - a.v);
+    }
+
     // 資産統計を取得
     getAssetStats(assets) {
         const totalValue = this.calculateTotalValue(assets);

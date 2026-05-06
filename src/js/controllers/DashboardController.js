@@ -13,6 +13,7 @@ export class DashboardController {
         this.view = new DashboardView(containerId);
         this.allocationChartView = new ChartView();
         this.monthlyChartView = new ChartView();
+        this.treemapChartView = new ChartView();
         this.onAddAssetCallback = null;
     }
 
@@ -34,6 +35,7 @@ export class DashboardController {
         if (stats.totalAssets > 0) {
             this.renderAllocationChart(assets);
             this.renderMonthlyChart();
+            this.renderTreemapChart(assets, stats.totalValue);
         }
     }
 
@@ -61,6 +63,39 @@ export class DashboardController {
         }
 
         this.view.renderMonthlyTable(monthlyHistory);
+    }
+
+    // ツリーマップを描画
+    renderTreemapChart(assets, totalValue) {
+        const treeData = calculationService.generateTreemapData(assets);
+        if (!treeData || treeData.length === 0) return;
+
+        const colorMap = {
+            cash: '#10b981',
+            stock_jp: '#3b82f6',
+            stock_us: '#6366f1',
+            stock_kr: '#ec4899',
+            fund: '#f59e0b',
+            crypto: '#8b5cf6'
+        };
+
+        const categoryTotals = {};
+        treeData.forEach(item => {
+            if (!categoryTotals[item.category]) {
+                categoryTotals[item.category] = { label: item.categoryLabel, value: 0, color: colorMap[item.category] };
+            }
+            categoryTotals[item.category].value += item.v;
+        });
+
+        const legendCategories = Object.values(categoryTotals)
+            .filter(c => c.value > 0)
+            .map(c => ({ ...c, percentage: totalValue > 0 ? (c.value / totalValue) * 100 : 0 }))
+            .sort((a, b) => b.value - a.value);
+
+        setTimeout(() => {
+            this.treemapChartView.renderTreemapChart('asset-treemap-chart', treeData, totalValue);
+            this.view.renderTreemapLegend(legendCategories);
+        }, 200);
     }
 
     // イベントハンドラーをアタッチ
@@ -197,6 +232,9 @@ export class DashboardController {
         } else {
             this.renderMonthlyChart();
         }
+
+        // ツリーマップを更新
+        this.renderTreemapChart(assets, stats.totalValue);
     }
 
     // 月次データをCSVエクスポート
@@ -258,6 +296,7 @@ export class DashboardController {
     destroyChart() {
         this.allocationChartView.destroyChart();
         this.monthlyChartView.destroyChart();
+        this.treemapChartView.destroyChart();
     }
 
     // コールバック設定

@@ -249,6 +249,60 @@
     background-color: var(--bg-secondary);
 }
 
+/* Treemap Section */
+.treemap-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.treemap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.treemap-wrapper {
+    position: relative;
+    height: 400px;
+}
+
+.treemap-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-md);
+    justify-content: flex-end;
+}
+
+.treemap-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.treemap-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .treemap-wrapper {
+        height: 280px;
+    }
+    .treemap-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .treemap-legend {
+        justify-content: flex-start;
+    }
+}
+
 /* Recent Assets */
 .recent-assets-list {
     background-color: var(--bg-primary);

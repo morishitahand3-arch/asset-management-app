@@ -29,6 +29,7 @@ export class DashboardView {
                 </div>
                 ${this.generateProfitLossCard(stats.profitLoss)}
             </div>
+            ${this.generateTreemapSection()}
             ${this.generateMonthlyTrendChart()}
             ${this.generateAggregatedAssetsList(stats.aggregatedByIdentifier)}
             ${this.generateRecentAssetsList(stats.recent)}
@@ -132,6 +133,34 @@ export class DashboardView {
                 </div>
             </div>
         `;
+    }
+
+    // ツリーマップセクション
+    generateTreemapSection() {
+        return `
+            <div class="card treemap-section">
+                <div class="treemap-header">
+                    <h3 class="card-title" style="margin-bottom:0;">保有資産ツリーマップ</h3>
+                    <div class="treemap-legend" id="treemap-legend"></div>
+                </div>
+                <div class="treemap-wrapper">
+                    <canvas id="asset-treemap-chart"></canvas>
+                </div>
+            </div>
+        `;
+    }
+
+    // ツリーマップ凡例を描画
+    renderTreemapLegend(categories) {
+        const container = document.getElementById('treemap-legend');
+        if (!container) return;
+        container.innerHTML = categories.map(cat => `
+            <div class="treemap-legend-item">
+                <div class="treemap-legend-dot" style="background-color:${cat.color};"></div>
+                <span>${cat.label}</span>
+                <span>${cat.percentage.toFixed(1)}%</span>
+            </div>
+        `).join('');
     }
 
     // 月次推移グラフ＋テーブル
