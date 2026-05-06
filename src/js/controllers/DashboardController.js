@@ -67,22 +67,34 @@ export class DashboardController {
 
     // ツリーマップを描画
     renderTreemapChart(assets, totalValue) {
-        const treeData = calculationService.generateTreemapData(assets);
+        let treeData = calculationService.generateTreemapData(assets);
         if (!treeData || treeData.length === 0) return;
 
         const colorMap = {
-            cash: '#10b981',
+            cash:     '#10b981',
             stock_jp: '#3b82f6',
             stock_us: '#6366f1',
             stock_kr: '#ec4899',
-            fund: '#f59e0b',
-            crypto: '#8b5cf6'
+            fund:     '#f59e0b',
+            crypto:   '#8b5cf6',
+            others:   '#6b7280'
         };
+
+        // 2%未満の小さいタイルが2件以上あれば「その他」にまとめる
+        if (totalValue > 0) {
+            const small = treeData.filter(d => d.v / totalValue < 0.02);
+            if (small.length >= 2) {
+                const large = treeData.filter(d => d.v / totalValue >= 0.02);
+                const othersTotal = small.reduce((s, d) => s + d.v, 0);
+                large.push({ v: othersTotal, label: 'その他', ticker: null, symbol: null, category: 'others', categoryLabel: 'その他' });
+                treeData = large;
+            }
+        }
 
         const categoryTotals = {};
         treeData.forEach(item => {
             if (!categoryTotals[item.category]) {
-                categoryTotals[item.category] = { label: item.categoryLabel, value: 0, color: colorMap[item.category] };
+                categoryTotals[item.category] = { label: item.categoryLabel, value: 0, color: colorMap[item.category] || '#6b7280' };
             }
             categoryTotals[item.category].value += item.v;
         });

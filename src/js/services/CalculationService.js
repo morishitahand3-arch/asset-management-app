@@ -309,6 +309,8 @@ export class CalculationService {
                 return {
                     v: item.totalValue,
                     label: item.name,
+                    ticker: item.ticker || null,
+                    symbol: item.symbol || null,
                     category,
                     categoryLabel: CHART_CATEGORY_LABELS[category]
                 };
