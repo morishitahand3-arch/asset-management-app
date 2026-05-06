@@ -201,21 +201,21 @@ export class ChartView {
             type: 'treemap',
             data: {
                 datasets: [{
-                    data: treeData,
+                    tree: treeData,
                     key: 'v',
                     spacing: 2,
                     borderWidth: 2,
                     borderColor: 'rgba(255,255,255,0.9)',
                     backgroundColor(ctx) {
-                        if (ctx.type !== 'data') return 'transparent';
-                        const category = ctx.raw._data?.category;
-                        return colorMap[category] || 'rgba(100,100,100,0.85)';
+                        const category = ctx.raw?._data?.category;
+                        return colorMap[category] || 'rgba(150,150,150,0.85)';
                     },
                     labels: {
                         display: true,
                         formatter(ctx) {
-                            const v = ctx.raw._data?.v;
-                            return [ctx.raw._data?.label, formatCurrency(v)];
+                            const d = ctx.raw?._data;
+                            if (!d) return '';
+                            return [d.label, formatCurrency(d.v)];
                         },
                         color: ['white', 'rgba(255,255,255,0.85)'],
                         font: [{ size: 13, weight: 'bold' }, { size: 11 }],
@@ -232,10 +232,11 @@ export class ChartView {
                     tooltip: {
                         callbacks: {
                             title(ctx) {
-                                return ctx[0].raw._data?.label || '';
+                                return ctx[0].raw?._data?.label || '';
                             },
                             label(ctx) {
-                                const d = ctx.raw._data;
+                                const d = ctx.raw?._data;
+                                if (!d) return '';
                                 const pct = totalValue > 0 ? ((d.v / totalValue) * 100).toFixed(1) : '0.0';
                                 return [
                                     `評価額: ${formatCurrency(d.v)}`,
