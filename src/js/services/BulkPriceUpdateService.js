@@ -49,24 +49,29 @@ export class BulkPriceUpdateService {
 
             console.log(`Updating prices for ${updatableAssets.length} assets...`);
 
-            // 各資産の価格を更新（バッチ処理 - 一度に5件まで）
-            const batchSize = 5;
+            // 各資産の価格を更新（バッチ処理 - 無料プロキシがレート制限/ブロックしやすいため
+            // 同時実行数を抑え、バッチ内でも少しずつ間隔を空けて送信する）
+            const batchSize = 2;
             const results = [];
 
             for (let i = 0; i < updatableAssets.length; i += batchSize) {
                 const batch = updatableAssets.slice(i, i + batchSize);
                 console.log(`Processing batch ${Math.floor(i / batchSize) + 1} (${batch.length} assets)...`);
 
-                const batchPromises = batch.map(async (asset) => {
+                const batchPromises = batch.map(async (asset, index) => {
+                    // バッチ内でも同時に発火させず、少しずらして送信する
+                    if (index > 0) {
+                        await new Promise(resolve => setTimeout(resolve, index * 400));
+                    }
                     return await this.updateAssetPrice(asset, onProgress);
                 });
 
                 const batchResults = await Promise.all(batchPromises);
                 results.push(...batchResults);
 
-                // バッチ間で少し待機（レート制限回避）
+                // バッチ間で待機（レート制限回避）
                 if (i + batchSize < updatableAssets.length) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                 }
             }
 

@@ -3,24 +3,39 @@
 export class PriceService {
     constructor() {
         // CORSプロキシを使用（Yahoo FinanceはCORS制限があるため）
+        // corsproxy.ioは匿名利用が廃止され常に403を返すため削除済み（要APIキー）
         this.corsProxies = [
             'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
             'https://api.codetabs.com/v1/proxy?quest='
         ];
         this.currentProxyIndex = 0;
         this.yahooFinanceBaseUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+
+        // 為替レートのキャッシュ（一括更新時に同じペアを何度も取得しないため）
+        this.exchangeRateCache = new Map();
+        this.exchangeRateCacheTtlMs = 5 * 60 * 1000; // 5分
+    }
+
+    // タイムアウト付きfetch（モバイル回線での長時間ハング防止）
+    async fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error(`タイムアウトしました（${timeoutMs}ms）`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
+        }
     }
 
     // 現在のプロキシを取得
     getCurrentProxy() {
         return this.corsProxies[this.currentProxyIndex];
-    }
-
-    // 次のプロキシに切り替え
-    switchToNextProxy() {
-        this.currentProxyIndex = (this.currentProxyIndex + 1) % this.corsProxies.length;
-        console.log('Switched to proxy:', this.getCurrentProxy());
     }
 
     // ティッカーから適切なシンボルを生成（日本株 vs 米国株 vs 韓国株の判定）
@@ -48,6 +63,13 @@ export class PriceService {
 
     // 為替レート取得（USD→JPY）
     async getExchangeRate(from = 'USD', to = 'JPY') {
+        const cacheKey = `${from}${to}`;
+        const cached = this.exchangeRateCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this.exchangeRateCacheTtlMs) {
+            console.log(`Using cached exchange rate ${from}/${to}:`, cached.rate);
+            return cached.rate;
+        }
+
         try {
             const symbol = `${from}${to}=X`;
             const url = `${this.yahooFinanceBaseUrl}${symbol}`;
@@ -63,42 +85,54 @@ export class PriceService {
             const rate = result.meta.regularMarketPrice;
 
             console.log(`Exchange rate ${from}/${to}:`, rate);
+            this.exchangeRateCache.set(cacheKey, { rate, timestamp: Date.now() });
             return rate;
         } catch (error) {
             console.error('Failed to fetch exchange rate:', error);
-            // デフォルト値として150円/USDを返す
+            // デフォルト値として150円/USDを返す（同一実行中に無駄な再試行をしないよう短時間キャッシュ）
             console.warn('Using default exchange rate: 150 JPY/USD');
+            this.exchangeRateCache.set(cacheKey, { rate: 150, timestamp: Date.now() - this.exchangeRateCacheTtlMs + 30000 });
             return 150;
         }
     }
 
     // プロキシを使ってフェッチ（リトライ機能付き）
-    async fetchWithProxyRetry(url, maxRetries = 3) {
+    // モバイル回線はプロキシがボット判定でブロックしやすく不安定なため、
+    // 全プロキシを2周試す・タイムアウトを設ける・指数バックオフで待機する
+    async fetchWithProxyRetry(url, maxRetries = this.corsProxies.length * 2) {
         let lastError = null;
+        // 呼び出し開始時点の現在プロキシを起点に、他の並行呼び出しと競合しないよう
+        // ローカルにプロキシの試行順を組み立てる
+        const startIndex = this.currentProxyIndex;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const proxyUrl = `${this.getCurrentProxy()}${encodeURIComponent(url)}`;
-                console.log(`Attempt ${attempt + 1}: Fetching via ${this.getCurrentProxy()}`);
+            const proxyIndex = (startIndex + attempt) % this.corsProxies.length;
+            const proxy = this.corsProxies[proxyIndex];
 
-                const response = await fetch(proxyUrl);
+            try {
+                const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
+                console.log(`Attempt ${attempt + 1}/${maxRetries}: Fetching via ${proxy}`);
+
+                const response = await this.fetchWithTimeout(proxyUrl, {}, 10000);
 
                 if (response.ok) {
-                    return await response.json();
+                    const data = await response.json();
+                    this.currentProxyIndex = proxyIndex; // 成功したプロキシを次回以降の起点にする
+                    return data;
                 }
 
-                // プロキシエラーの場合は次のプロキシに切り替え
-                console.warn(`Proxy failed with status ${response.status}, switching to next proxy...`);
-                this.switchToNextProxy();
+                console.warn(`Proxy failed with status ${response.status}, trying next proxy...`);
                 lastError = new Error(`HTTP error! status: ${response.status}`);
 
             } catch (error) {
-                console.warn(`Fetch error:`, error);
-                this.switchToNextProxy();
+                console.warn(`Fetch error via ${proxy}:`, error.message);
                 lastError = error;
+            }
 
-                // 短い待機時間を挟む
-                await new Promise(resolve => setTimeout(resolve, 500));
+            // 指数バックオフ + ジッターで待機（最終試行後は待たない）
+            if (attempt < maxRetries - 1) {
+                const backoff = Math.min(500 * Math.pow(2, attempt), 4000) + Math.random() * 300;
+                await new Promise(resolve => setTimeout(resolve, backoff));
             }
         }
 
@@ -250,31 +284,39 @@ export class PriceService {
     }
 
     // HTML取得用のプロキシリトライ（テキストレスポンス用）
-    async fetchHtmlWithProxyRetry(url, maxRetries = 3) {
+    async fetchHtmlWithProxyRetry(url, maxRetries = this.corsProxies.length * 2) {
         let lastError = null;
+        const startIndex = this.currentProxyIndex;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const proxyUrl = `${this.getCurrentProxy()}${encodeURIComponent(url)}`;
-                console.log(`[HTML] Attempt ${attempt + 1}: Fetching via ${this.getCurrentProxy()}`);
+            const proxyIndex = (startIndex + attempt) % this.corsProxies.length;
+            const proxy = this.corsProxies[proxyIndex];
 
-                const response = await fetch(proxyUrl);
+            try {
+                const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
+                console.log(`[HTML] Attempt ${attempt + 1}/${maxRetries}: Fetching via ${proxy}`);
+
+                const response = await this.fetchWithTimeout(proxyUrl, {}, 10000);
 
                 if (response.ok) {
                     const text = await response.text();
                     if (text && text.length > 1000) {
+                        this.currentProxyIndex = proxyIndex;
                         return text;
                     }
                     console.warn('Response too short, might be blocked. Trying next proxy...');
+                    lastError = new Error('プロキシからのレスポンスが不正です（ブロックされた可能性）');
+                } else {
+                    lastError = new Error(`HTTP error! status: ${response.status}`);
                 }
-
-                this.switchToNextProxy();
-                lastError = new Error(`HTTP error! status: ${response.status}`);
             } catch (error) {
-                console.warn('Fetch error:', error);
-                this.switchToNextProxy();
+                console.warn(`Fetch error via ${proxy}:`, error.message);
                 lastError = error;
-                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            if (attempt < maxRetries - 1) {
+                const backoff = Math.min(500 * Math.pow(2, attempt), 4000) + Math.random() * 300;
+                await new Promise(resolve => setTimeout(resolve, backoff));
             }
         }
 
@@ -288,14 +330,7 @@ export class PriceService {
             const url = `https://minkabu.jp/fund/${fundCode}`;
             console.log('Fetching fund price from Minkabu:', url);
 
-            const proxyUrl = `${this.getCurrentProxy()}${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const html = await response.text();
+            const html = await this.fetchHtmlWithProxyRetry(url);
 
             // 基準価額を抽出
             const priceMatch = html.match(/基準価額[^>]*>[\s\S]*?([\d,]+(?:\.\d+)?)\s*円/i);
