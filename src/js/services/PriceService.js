@@ -3,8 +3,12 @@
 export class PriceService {
     constructor() {
         // CORSプロキシを使用（Yahoo FinanceはCORS制限があるため）
+        // 無料の公開プロキシ（allorigins/codetabs）は頻繁にダウン・ブロックされ不安定なため、
+        // 自前のCloudflare Worker（cloudflare-worker/proxy.js）を最優先にし、
+        // 万一Workerが落ちた場合のフォールバックとして公開プロキシを残す。
         // corsproxy.ioは匿名利用が廃止され常に403を返すため削除済み（要APIキー）
         this.corsProxies = [
+            'https://asset-app-proxy.morishitahand3.workers.dev/?url=',
             'https://api.allorigins.win/raw?url=',
             'https://api.codetabs.com/v1/proxy?quest='
         ];

@@ -1,0 +1,4 @@
+name = "asset-app-proxy"
+main = "proxy.js"
+compatibility_date = "2026-09-04"
+account_id = "67ab130b0b85af6858e8d004c3dbf8b9"
