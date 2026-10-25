@@ -61,6 +61,11 @@ export class PriceService {
             return `${ticker}.T`;
         }
 
+        // 英字入りの新形式証券コード（2024年〜）は日本株と判定（例: 285A = キオクシア）
+        if (/^\d[\dA-Z]\d[\dA-Z]$/i.test(ticker)) {
+            return `${ticker.toUpperCase()}.T`;
+        }
+
         // アルファベットが含まれる場合は米国株と判定（例: AAPL, MU）
         return ticker;
     }

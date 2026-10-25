@@ -31,6 +31,13 @@ export class CalculationService {
         return false;
     }
 
+    // 日本株のティッカーか判定（数字のみ、英字入り新形式コード 例: 285A、.T付き）
+    isJapaneseTicker(ticker) {
+        return /^\d+$/.test(ticker) ||
+            /^\d[\dA-Z]\d[\dA-Z]$/i.test(ticker) ||
+            /\.T$/i.test(ticker);
+    }
+
     // 株式が日本株か米国株かを判定
     isJapaneseStock(asset) {
         if (asset.type !== ASSET_TYPES.STOCK) {
@@ -50,15 +57,15 @@ export class CalculationService {
                 return true;
             }
             // 日本の取引所でない場合でも、ティッカーが数字のみなら日本株と判定
-            if (asset.ticker && /^\d+$/.test(asset.ticker)) {
+            if (asset.ticker && this.isJapaneseTicker(asset.ticker)) {
                 return true;
             }
             return false;
         }
 
-        // tickerから判定（数字のみなら日本株）
+        // tickerから判定（数字のみ、または英字入り新形式コードなら日本株）
         if (asset.ticker) {
-            return /^\d+$/.test(asset.ticker);
+            return this.isJapaneseTicker(asset.ticker);
         }
 
         // デフォルトは日本株
