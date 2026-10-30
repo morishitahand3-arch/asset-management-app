@@ -460,6 +460,87 @@ export class CalculationService {
             datasets
         };
     }
+
+    // 株式のグラフ用カテゴリ（日本株・米国株・韓国株）
+    getStockCategory(asset) {
+        if (this.isKoreanStock(asset)) return CHART_CATEGORIES.STOCK_KR;
+        if (this.isJapaneseStock(asset)) return CHART_CATEGORIES.STOCK_JP;
+        return CHART_CATEGORIES.STOCK_US;
+    }
+
+    // 配当サマリーを計算（過去12ヶ月の配当実績 × 現在の保有株数、税引前・円換算）
+    calculateDividendSummary(assets, dividendCache) {
+        const monthlyByCategory = {
+            [CHART_CATEGORIES.STOCK_JP]: new Array(12).fill(0),
+            [CHART_CATEGORIES.STOCK_US]: new Array(12).fill(0),
+            [CHART_CATEGORIES.STOCK_KR]: new Array(12).fill(0)
+        };
+
+        let annualTotal = 0;
+        let coveredValue = 0;     // 配当データ取得済み銘柄の評価額
+        let coveredCostBasis = 0; // 配当データ取得済み銘柄の取得額
+        let missingCount = 0;
+        let lastUpdated = null;
+
+        assets.filter(asset => asset.type === ASSET_TYPES.STOCK).forEach(asset => {
+            const entry = dividendCache[asset.ticker];
+            if (!entry) {
+                missingCount++;
+                return;
+            }
+
+            const category = this.getStockCategory(asset);
+            entry.dividends.forEach(dividend => {
+                const amount = dividend.amount * entry.jpyRate * asset.quantity;
+                const month = Number(dividend.date.slice(5, 7)) - 1; // 権利落ち月（YYYY-MM-DD）
+                monthlyByCategory[category][month] += amount;
+                annualTotal += amount;
+            });
+
+            coveredValue += asset.getCurrentValue();
+            coveredCostBasis += asset.quantity * asset.averagePrice;
+            if (!lastUpdated || entry.fetchedAt > lastUpdated) {
+                lastUpdated = entry.fetchedAt;
+            }
+        });
+
+        return {
+            annualTotal,
+            monthlyAverage: annualTotal / 12,
+            dividendYield: coveredValue > 0 ? (annualTotal / coveredValue) * 100 : 0,
+            yieldOnCost: coveredCostBasis > 0 ? (annualTotal / coveredCostBasis) * 100 : 0,
+            monthlyByCategory,
+            missingCount,
+            lastUpdated
+        };
+    }
+
+    // 月別配当グラフ用のデータを生成（カテゴリ別積み上げ棒グラフ）
+    generateDividendChartData(summary) {
+        const labels = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+
+        const categories = [
+            { key: CHART_CATEGORIES.STOCK_JP, color: { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' } },
+            { key: CHART_CATEGORIES.STOCK_US, color: { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgba(99, 102, 241, 1)' } },
+            { key: CHART_CATEGORIES.STOCK_KR, color: { bg: 'rgba(236, 72, 153, 0.8)', border: 'rgba(236, 72, 153, 1)' } }
+        ];
+
+        // 配当のないカテゴリは凡例に出さない
+        const datasets = categories
+            .filter(category => summary.monthlyByCategory[category.key].some(v => v > 0))
+            .map(category => ({
+                label: CHART_CATEGORY_LABELS[category.key],
+                data: summary.monthlyByCategory[category.key],
+                backgroundColor: category.color.bg,
+                borderColor: category.color.border,
+                borderWidth: 1
+            }));
+
+        return {
+            labels,
+            datasets
+        };
+    }
 }
 
 // シングルトンインスタンス

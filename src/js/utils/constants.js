@@ -86,7 +86,8 @@ export const STORAGE_KEYS = {
     ASSETS: 'assetApp.assets',
     SETTINGS: 'assetApp.settings',
     VERSION: 'assetApp.version',
-    HISTORY: 'assetApp.history'
+    HISTORY: 'assetApp.history',
+    DIVIDENDS: 'assetApp.dividends'
 };
 
 export const APP_VERSION = '1.0.0';

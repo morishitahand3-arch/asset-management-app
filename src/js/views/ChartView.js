@@ -148,6 +148,38 @@ export class ChartView {
         return this.renderBarChart(canvasId, chartData, true);
     }
 
+    // 月別配当グラフ生成（積み上げ棒グラフ＋円表記のツールチップ）
+    renderDividendChart(canvasId, chartData) {
+        const formatYen = (v) => '¥' + new Intl.NumberFormat('ja-JP').format(Math.round(v));
+
+        return this.renderChart(canvasId, chartData, {
+            type: 'bar',
+            chartOptions: {
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        filter: (item) => item.parsed.y > 0,
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: ${formatYen(context.parsed.y)}`,
+                            footer: (items) => `合計: ${formatYen(items.reduce((sum, item) => sum + item.parsed.y, 0))}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { callback: formatYen }
+                    }
+                }
+            }
+        });
+    }
+
     // グラフを更新
     updateChart(chartData) {
         if (!this.chartInstance) {

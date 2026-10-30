@@ -190,6 +190,44 @@
     font-size: var(--font-size-sm);
 }
 
+/* Dividend Section */
+.dividend-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.dividend-stat {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+}
+
+.dividend-stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.dividend-stat-value {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: var(--spacing-xs);
+}
+
+.dividend-note {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    margin-top: var(--spacing-sm);
+}
+
+@media (max-width: 768px) {
+    .dividend-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 /* Monthly Trend Table */
 .monthly-table-wrapper {
     overflow-x: auto;

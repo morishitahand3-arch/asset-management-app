@@ -6,6 +6,7 @@ import { assetService } from '../services/AssetService.js';
 import { calculationService } from '../services/CalculationService.js';
 import { bulkPriceUpdateService } from '../services/BulkPriceUpdateService.js';
 import { storageService } from '../services/StorageService.js';
+import { dividendService } from '../services/DividendService.js';
 import { ASSET_TYPES } from '../utils/constants.js';
 
 export class DashboardController {
@@ -14,6 +15,7 @@ export class DashboardController {
         this.allocationChartView = new ChartView();
         this.monthlyChartView = new ChartView();
         this.treemapChartView = new ChartView();
+        this.dividendChartView = new ChartView();
         this.onAddAssetCallback = null;
     }
 
@@ -28,7 +30,13 @@ export class DashboardController {
             storageService.saveHistorySnapshot(stats.totalValue, breakdown);
         }
 
-        this.view.render(stats);
+        // 配当サマリー（株式を保有している場合のみ）
+        const hasStocks = assets.some(asset => asset.type === ASSET_TYPES.STOCK);
+        const dividendSummary = hasStocks
+            ? calculationService.calculateDividendSummary(assets, dividendService.getCache())
+            : null;
+
+        this.view.render(stats, dividendSummary);
         this.attachEventHandlers();
 
         // グラフを描画（資産がある場合のみ）
@@ -36,7 +44,21 @@ export class DashboardController {
             this.renderAllocationChart(assets);
             this.renderMonthlyChart();
             this.renderTreemapChart(assets, stats.totalValue);
+            this.renderDividendChart(dividendSummary);
         }
+    }
+
+    // 月別配当グラフを描画
+    renderDividendChart(summary) {
+        if (!summary || summary.lastUpdated === null) {
+            this.dividendChartView.destroyChart();
+            return;
+        }
+
+        const chartData = calculationService.generateDividendChartData(summary);
+        setTimeout(() => {
+            this.dividendChartView.renderDividendChart('dividend-monthly-chart', chartData);
+        }, 250);
     }
 
     // 資産構成グラフを描画
@@ -126,6 +148,13 @@ export class DashboardController {
             });
         }
 
+        const updateDividendsBtn = document.getElementById('update-dividends');
+        if (updateDividendsBtn) {
+            updateDividendsBtn.addEventListener('click', () => {
+                this.handleUpdateDividends();
+            });
+        }
+
         const exportCsvBtn = document.getElementById('export-monthly-csv');
         if (exportCsvBtn) {
             exportCsvBtn.addEventListener('click', () => {
@@ -177,6 +206,18 @@ export class DashboardController {
             if (result.success) {
                 this.showToast(result.message, 'success');
 
+                // 配当データが未取得・1週間以上前なら合わせて取得する
+                if (dividendService.isStale(assetService.getAllAssets())) {
+                    await dividendService.updateAllDividends((progress) => {
+                        if (progressText) {
+                            progressText.textContent = `配当 ${progress.completed}/${progress.total}`;
+                        }
+                        if (progressBar) {
+                            progressBar.style.width = `${(progress.completed / progress.total) * 100}%`;
+                        }
+                    });
+                }
+
                 // ダッシュボードを再レンダリング
                 setTimeout(() => {
                     this.renderDashboard();
@@ -199,6 +240,35 @@ export class DashboardController {
                     progressContainer.style.display = 'none';
                 }
             }, 2000);
+        }
+    }
+
+    // 配当データ取得処理
+    async handleUpdateDividends() {
+        const button = document.getElementById('update-dividends');
+        if (!button) return;
+
+        button.disabled = true;
+        button.textContent = '取得中...';
+
+        try {
+            const result = await dividendService.updateAllDividends((progress) => {
+                button.textContent = `取得中... ${progress.completed}/${progress.total}`;
+            });
+
+            this.showToast(result.message, result.success ? 'success' : 'error');
+            if (result.success) {
+                this.renderDashboard();
+            }
+        } catch (error) {
+            console.error('Dividend update error:', error);
+            this.showToast('配当データの取得中にエラーが発生しました', 'error');
+        } finally {
+            // 再レンダリング後は新しいボタンに置き換わるため、元のボタンが残っている場合のみ戻す
+            if (document.body.contains(button)) {
+                button.disabled = false;
+                button.textContent = '🔄 配当データを取得';
+            }
         }
     }
 
@@ -309,6 +379,7 @@ export class DashboardController {
         this.allocationChartView.destroyChart();
         this.monthlyChartView.destroyChart();
         this.treemapChartView.destroyChart();
+        this.dividendChartView.destroyChart();
     }
 
     // コールバック設定

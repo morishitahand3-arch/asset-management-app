@@ -9,7 +9,7 @@ export class DashboardView {
     }
 
     // ダッシュボード全体を生成
-    render(stats) {
+    render(stats, dividendSummary = null) {
         if (!this.container) return;
 
         if (!stats || stats.totalAssets === 0) {
@@ -30,6 +30,7 @@ export class DashboardView {
                 ${this.generateProfitLossCard(stats.profitLoss)}
             </div>
             ${this.generateTreemapSection()}
+            ${dividendSummary ? this.generateDividendSection(dividendSummary) : ''}
             ${this.generateMonthlyTrendChart()}
             ${this.generateAggregatedAssetsList(stats.aggregatedByIdentifier)}
             ${this.generateRecentAssetsList(stats.recent)}
@@ -161,6 +162,54 @@ export class DashboardView {
                 <span>${cat.percentage.toFixed(1)}%</span>
             </div>
         `).join('');
+    }
+
+    // 配当金セクション（年間サマリー＋月別グラフ）
+    generateDividendSection(summary) {
+        const hasData = summary.lastUpdated !== null;
+
+        const body = hasData ? `
+            <div class="dividend-summary-grid">
+                <div class="dividend-stat">
+                    <div class="dividend-stat-label">年間配当（予想）</div>
+                    <div class="dividend-stat-value">${formatters.formatCurrency(summary.annualTotal)}</div>
+                </div>
+                <div class="dividend-stat">
+                    <div class="dividend-stat-label">月平均</div>
+                    <div class="dividend-stat-value">${formatters.formatCurrency(summary.monthlyAverage)}</div>
+                </div>
+                <div class="dividend-stat">
+                    <div class="dividend-stat-label">配当利回り</div>
+                    <div class="dividend-stat-value">${formatters.formatPercentage(summary.dividendYield, 2)}</div>
+                </div>
+                <div class="dividend-stat">
+                    <div class="dividend-stat-label">取得利回り</div>
+                    <div class="dividend-stat-value">${formatters.formatPercentage(summary.yieldOnCost, 2)}</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 260px; margin-top: var(--spacing-md);">
+                <canvas id="dividend-monthly-chart"></canvas>
+            </div>
+            <p class="dividend-note">
+                過去12ヶ月の配当実績 × 現在の保有株数で計算（税引前・円換算）。月は権利落ち月です。
+                最終取得: ${formatters.formatRelativeTime(summary.lastUpdated)}
+                ${summary.missingCount > 0 ? `／未取得の銘柄: ${summary.missingCount}件` : ''}
+            </p>
+        ` : `
+            <div class="empty-state-text" style="padding: var(--spacing-xl); text-align: center; color: var(--text-tertiary);">
+                配当データが未取得です。「配当データを取得」を押してください。
+            </div>
+        `;
+
+        return `
+            <div class="card">
+                <div class="monthly-trend-header">
+                    <h3 class="card-title" style="margin-bottom: 0;">配当金</h3>
+                    <button class="btn btn-secondary btn-sm" id="update-dividends">🔄 配当データを取得</button>
+                </div>
+                ${body}
+            </div>
+        `;
     }
 
     // 月次推移グラフ＋テーブル

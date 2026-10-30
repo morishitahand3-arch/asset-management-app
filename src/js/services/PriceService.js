@@ -198,6 +198,58 @@ export class PriceService {
         }
     }
 
+    // 株式の過去12ヶ月の配当実績を取得（1株あたり・現地通貨建て）
+    async getDividendHistory(ticker) {
+        try {
+            const symbol = this.getSymbolForStock(ticker);
+
+            if (!symbol) {
+                throw new Error('ティッカーシンボルが無効です');
+            }
+
+            const url = `${this.yahooFinanceBaseUrl}${symbol}?range=1y&interval=1mo&events=div`;
+            console.log('Fetching dividend history for:', symbol);
+
+            const data = await this.fetchWithProxyRetry(url);
+
+            if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+                throw new Error('配当データが見つかりません');
+            }
+
+            const result = data.chart.result[0];
+            const currency = result.meta.currency;
+
+            // events.dividends: { [timestamp]: { amount, date(権利落ち日・UNIX秒) } }
+            const rawDividends = (result.events && result.events.dividends) || {};
+            const dividends = Object.values(rawDividends)
+                .map(d => ({
+                    date: new Date(d.date * 1000).toISOString().split('T')[0],
+                    amount: d.amount
+                }))
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            // 円換算レート（取得時点のレートで固定）
+            let jpyRate = 1;
+            if (currency && currency !== 'JPY') {
+                jpyRate = await this.getExchangeRate(currency, 'JPY');
+            }
+
+            return {
+                success: true,
+                symbol,
+                currency,
+                jpyRate,
+                dividends
+            };
+        } catch (error) {
+            console.error('Failed to fetch dividend history:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
     // 投資信託の現在価格を取得
     async getFundPrice(fundCode) {
         if (!fundCode) {
