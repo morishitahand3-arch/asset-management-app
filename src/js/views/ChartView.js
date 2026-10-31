@@ -151,6 +151,10 @@ export class ChartView {
     // 月別配当グラフ生成（積み上げ棒グラフ＋円表記のツールチップ）
     renderDividendChart(canvasId, chartData) {
         const formatYen = (v) => '¥' + new Intl.NumberFormat('ja-JP').format(Math.round(v));
+        // 軸ラベルは「1万」「5,000」のように短く表示する
+        const formatAxis = (v) => v >= 10000 ? `${v / 10000}万` : new Intl.NumberFormat('ja-JP').format(v);
+        const font = { family: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif', size: 11 };
+        const tickColor = '#94a3b8';
 
         return this.renderChart(canvasId, chartData, {
             type: 'bar',
@@ -158,22 +162,45 @@ export class ChartView {
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            font: { ...font, size: 12 },
+                            color: '#475569',
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            padding: 16
+                        }
                     },
                     tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        usePointStyle: true,
+                        boxPadding: 4,
                         filter: (item) => item.parsed.y > 0,
                         callbacks: {
-                            label: (context) => `${context.dataset.label}: ${formatYen(context.parsed.y)}`,
-                            footer: (items) => `合計: ${formatYen(items.reduce((sum, item) => sum + item.parsed.y, 0))}`
+                            label: (context) => ` ${context.dataset.label}  ${formatYen(context.parsed.y)}`,
+                            footer: (items) => items.length > 1
+                                ? `合計  ${formatYen(items.reduce((sum, item) => sum + item.parsed.y, 0))}`
+                                : ''
                         }
                     }
                 },
                 scales: {
-                    x: { stacked: true },
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { font, color: tickColor, maxRotation: 0, autoSkip: false }
+                    },
                     y: {
                         stacked: true,
                         beginAtZero: true,
-                        ticks: { callback: formatYen }
+                        grid: { color: 'rgba(148, 163, 184, 0.18)' },
+                        border: { display: false },
+                        ticks: { font, color: tickColor, maxTicksLimit: 5, callback: formatAxis }
                     }
                 }
             }

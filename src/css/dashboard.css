@@ -191,40 +191,401 @@
 }
 
 /* Dividend Section */
-.dividend-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+.dividend-card {
+    --dividend-accent: #059669;
+    --dividend-accent-soft: #ecfdf5;
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
 }
 
-.dividend-stat {
-    background-color: var(--bg-secondary);
+.dividend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+}
+
+.dividend-title {
+    margin-bottom: 2px;
+}
+
+.dividend-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.dividend-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+/* 税引後/税引前の切替（セグメントコントロール） */
+.segmented {
+    display: inline-flex;
+    padding: 3px;
+    background-color: var(--bg-tertiary);
+    border-radius: 999px;
+}
+
+.segmented-btn {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.segmented-btn.active {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 18px;
+    line-height: 1;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover:not(:disabled) {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.icon-btn.is-loading {
+    animation: dividend-spin 0.9s linear infinite;
+}
+
+@keyframes dividend-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* サマリー（年間配当＋指標） */
+.dividend-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+    gap: var(--spacing-lg);
+    align-items: center;
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--dividend-accent-soft) 0%, #f0fdfa 100%);
+    border: 1px solid #d1fae5;
+}
+
+.dividend-hero-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--dividend-accent);
+}
+
+.dividend-hero-amount {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    margin: 4px 0;
+}
+
+.dividend-hero-sub {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.dividend-hero-sep {
+    margin: 0 6px;
+    color: var(--text-tertiary);
+}
+
+.dividend-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.dividend-kpi {
+    background-color: rgba(255, 255, 255, 0.8);
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
 }
 
-.dividend-stat-label {
-    font-size: var(--font-size-sm);
+.dividend-kpi-label {
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
 }
 
-.dividend-stat-value {
-    font-size: var(--font-size-xl);
+.dividend-kpi-value {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* 月別グラフ・銘柄別ランキング */
+.dividend-block {
+    margin-top: var(--spacing-xl);
+}
+
+.dividend-block-title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--text-primary);
-    margin-top: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.dividend-block-hint {
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    color: var(--text-tertiary);
+}
+
+.dividend-chart {
+    position: relative;
+    height: 240px;
+}
+
+/* 広い画面ではグラフとランキングを横並びにする */
+@media (min-width: 1200px) {
+    .dividend-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: var(--spacing-2xl);
+        align-items: start;
+    }
+
+    .dividend-chart {
+        height: 320px;
+    }
+}
+
+.dividend-ranking {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dividend-row {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.dividend-ranking:first-child .dividend-row:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.dividend-rank {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+}
+
+.dividend-row:nth-child(-n+3) .dividend-rank {
+    background-color: var(--dividend-accent-soft);
+    color: var(--dividend-accent);
+}
+
+.dividend-row-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.dividend-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-md);
+}
+
+.dividend-row-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.dividend-row-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dividend-badge {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background-color: #fef3c7;
+    color: #b45309;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.dividend-row-amount {
+    flex-shrink: 0;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.dividend-row-amount.is-zero {
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+
+.dividend-row-bar {
+    height: 6px;
+    margin: 8px 0 6px;
+    border-radius: 999px;
+    background-color: var(--bg-tertiary);
+    overflow: hidden;
+}
+
+.dividend-row-bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+}
+
+.dividend-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.dividend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+    border-radius: 999px;
+    vertical-align: 0;
+}
+
+.cat-stock_jp { background-color: #3b82f6; }
+.cat-stock_us { background-color: #6366f1; }
+.cat-stock_kr { background-color: #ec4899; }
+
+.dividend-more summary {
+    padding: 10px 0 0;
+    border-top: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--primary-color);
+    cursor: pointer;
+    list-style: none;
+}
+
+.dividend-more summary::-webkit-details-marker {
+    display: none;
+}
+
+.dividend-more[open] summary {
+    display: none;
 }
 
 .dividend-note {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
     font-size: var(--font-size-xs);
+    line-height: 1.6;
     color: var(--text-tertiary);
+}
+
+/* 未取得時 */
+.dividend-empty {
+    text-align: center;
+    padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.dividend-empty-icon {
+    font-size: 2rem;
+}
+
+.dividend-empty-text {
     margin-top: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dividend-empty-hint {
+    margin: var(--spacing-xs) auto var(--spacing-lg);
+    max-width: 28em;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
 }
 
 @media (max-width: 768px) {
-    .dividend-summary-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .dividend-card {
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+
+    .dividend-hero {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+
+    .dividend-hero-amount {
+        font-size: 2rem;
+    }
+
+    .dividend-kpi {
+        padding: 10px;
+    }
+
+    .dividend-kpi-value {
+        font-size: var(--font-size-base);
+    }
+
+    .dividend-chart {
+        height: 200px;
+    }
+}
+
+@media (max-width: 479px) {
+    .dividend-header {
+        flex-direction: column;
+    }
+
+    .dividend-actions {
+        width: 100%;
+        justify-content: space-between;
     }
 }
 

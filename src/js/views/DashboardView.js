@@ -9,7 +9,7 @@ export class DashboardView {
     }
 
     // ダッシュボード全体を生成
-    render(stats, dividendSummary = null) {
+    render(stats, showDividends = false) {
         if (!this.container) return;
 
         if (!stats || stats.totalAssets === 0) {
@@ -30,7 +30,7 @@ export class DashboardView {
                 ${this.generateProfitLossCard(stats.profitLoss)}
             </div>
             ${this.generateTreemapSection()}
-            ${dividendSummary ? this.generateDividendSection(dividendSummary) : ''}
+            ${showDividends ? this.generateDividendSection() : ''}
             ${this.generateMonthlyTrendChart()}
             ${this.generateAggregatedAssetsList(stats.aggregatedByIdentifier)}
             ${this.generateRecentAssetsList(stats.recent)}
@@ -164,51 +164,154 @@ export class DashboardView {
         `).join('');
     }
 
-    // 配当金セクション（年間サマリー＋月別グラフ）
-    generateDividendSection(summary) {
-        const hasData = summary.lastUpdated !== null;
+    // 配当金セクション（中身は renderDividendSection で描画）
+    generateDividendSection() {
+        return `<section class="card dividend-card" id="dividend-section"></section>`;
+    }
 
-        const body = hasData ? `
-            <div class="dividend-summary-grid">
-                <div class="dividend-stat">
-                    <div class="dividend-stat-label">年間配当（予想）</div>
-                    <div class="dividend-stat-value">${formatters.formatCurrency(summary.annualTotal)}</div>
+    // 配当金セクションを描画
+    renderDividendSection(summary, mode) {
+        const container = document.getElementById('dividend-section');
+        if (!container) return;
+
+        const header = `
+            <div class="dividend-header">
+                <div>
+                    <h3 class="card-title dividend-title">配当金</h3>
+                    <p class="dividend-subtitle">過去12ヶ月の実績から算出した年間予想</p>
                 </div>
-                <div class="dividend-stat">
-                    <div class="dividend-stat-label">月平均</div>
-                    <div class="dividend-stat-value">${formatters.formatCurrency(summary.monthlyAverage)}</div>
+                <div class="dividend-actions">
+                    ${summary.lastUpdated ? `
+                        <div class="segmented" role="group" aria-label="表示切替">
+                            <button type="button" class="segmented-btn ${mode === 'net' ? 'active' : ''}" data-dividend-mode="net" aria-pressed="${mode === 'net'}">税引後</button>
+                            <button type="button" class="segmented-btn ${mode === 'gross' ? 'active' : ''}" data-dividend-mode="gross" aria-pressed="${mode === 'gross'}">税引前</button>
+                        </div>
+                    ` : ''}
+                    <button type="button" class="icon-btn" id="update-dividends" title="配当データを取得" aria-label="配当データを取得">↻</button>
                 </div>
-                <div class="dividend-stat">
-                    <div class="dividend-stat-label">配当利回り</div>
-                    <div class="dividend-stat-value">${formatters.formatPercentage(summary.dividendYield, 2)}</div>
-                </div>
-                <div class="dividend-stat">
-                    <div class="dividend-stat-label">取得利回り</div>
-                    <div class="dividend-stat-value">${formatters.formatPercentage(summary.yieldOnCost, 2)}</div>
-                </div>
-            </div>
-            <div class="chart-wrapper" style="height: 260px; margin-top: var(--spacing-md);">
-                <canvas id="dividend-monthly-chart"></canvas>
-            </div>
-            <p class="dividend-note">
-                過去12ヶ月の配当実績 × 現在の保有株数で計算（税引前・円換算）。月は権利落ち月です。
-                最終取得: ${formatters.formatRelativeTime(summary.lastUpdated)}
-                ${summary.missingCount > 0 ? `／未取得の銘柄: ${summary.missingCount}件` : ''}
-            </p>
-        ` : `
-            <div class="empty-state-text" style="padding: var(--spacing-xl); text-align: center; color: var(--text-tertiary);">
-                配当データが未取得です。「配当データを取得」を押してください。
             </div>
         `;
 
-        return `
-            <div class="card">
-                <div class="monthly-trend-header">
-                    <h3 class="card-title" style="margin-bottom: 0;">配当金</h3>
-                    <button class="btn btn-secondary btn-sm" id="update-dividends">🔄 配当データを取得</button>
+        if (!summary.lastUpdated) {
+            container.innerHTML = `
+                ${header}
+                <div class="dividend-empty">
+                    <div class="dividend-empty-icon">💰</div>
+                    <p class="dividend-empty-text">配当データがまだありません</p>
+                    <p class="dividend-empty-hint">保有株式の過去12ヶ月の配当実績を取得して、年間の配当金を予想します。</p>
+                    <button type="button" class="btn btn-primary" id="update-dividends-empty">配当データを取得</button>
                 </div>
-                ${body}
+            `;
+            return;
+        }
+
+        const current = summary[mode];
+        const other = mode === 'net' ? summary.gross : summary.net;
+        const otherLabel = mode === 'net' ? '税引前' : '税引後';
+
+        container.innerHTML = `
+            ${header}
+            <div class="dividend-hero">
+                <div class="dividend-hero-main">
+                    <div class="dividend-hero-label">年間配当（${mode === 'net' ? '税引後' : '税引前'}）</div>
+                    <div class="dividend-hero-amount">${formatters.formatCurrency(current.annual)}</div>
+                    <div class="dividend-hero-sub">
+                        ${otherLabel} ${formatters.formatCurrency(other.annual)}
+                        <span class="dividend-hero-sep">·</span>
+                        税金 −${formatters.formatCurrency(summary.tax)}
+                    </div>
+                </div>
+                <div class="dividend-kpis">
+                    ${this.generateDividendKpi('月平均', formatters.formatCurrency(current.monthlyAverage))}
+                    ${this.generateDividendKpi('配当利回り', formatters.formatPercentage(current.dividendYield, 2))}
+                    ${this.generateDividendKpi('取得利回り', formatters.formatPercentage(current.yieldOnCost, 2))}
+                </div>
             </div>
+
+            <div class="dividend-body">
+                <div class="dividend-block">
+                    <h4 class="dividend-block-title">月別の配当<span class="dividend-block-hint">権利落ち月ベース</span></h4>
+                    <div class="dividend-chart">
+                        <canvas id="dividend-monthly-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="dividend-block">
+                    <h4 class="dividend-block-title">銘柄別の配当<span class="dividend-block-hint">${summary.holdings.length}銘柄</span></h4>
+                    ${this.generateDividendRanking(summary.holdings, mode)}
+                </div>
+            </div>
+
+            <p class="dividend-note">
+                税引後は国内株20.315%、米国株は現地10%＋国内20.315%、韓国株は現地15%＋国内20.315%で計算（NISA分は国内課税なし、外国税額控除は考慮外）。
+                最終取得: ${formatters.formatRelativeTime(summary.lastUpdated)}
+                ${summary.missingCount > 0 ? `／未取得の銘柄: ${summary.missingCount}件` : ''}
+            </p>
+        `;
+    }
+
+    generateDividendKpi(label, value) {
+        return `
+            <div class="dividend-kpi">
+                <div class="dividend-kpi-label">${label}</div>
+                <div class="dividend-kpi-value">${value}</div>
+            </div>
+        `;
+    }
+
+    // 銘柄別配当ランキング（上位8件＋残りは折りたたみ）
+    generateDividendRanking(holdings, mode) {
+        const visibleCount = 8;
+        holdings = [...holdings].sort((a, b) => b[mode] - a[mode]);
+        const max = holdings.length > 0 ? holdings[0][mode] : 0;
+
+        const row = (h, index) => {
+            const amount = h[mode];
+            const share = mode === 'net' ? h.netShare : h.grossShare;
+            const width = max > 0 ? (amount / max) * 100 : 0;
+            const months = h.months.length > 0 ? `${h.months.join('・')}月` : '';
+            const nisaBadge = h.quantity > 0 && h.nisaQuantity >= h.quantity
+                ? '<span class="dividend-badge">NISA</span>'
+                : h.nisaQuantity > 0 ? '<span class="dividend-badge">一部NISA</span>' : '';
+
+            return `
+                <li class="dividend-row">
+                    <span class="dividend-rank">${index + 1}</span>
+                    <div class="dividend-row-body">
+                        <div class="dividend-row-top">
+                            <div class="dividend-row-name">
+                                <span class="dividend-row-title">${formatters.escapeHtml(h.name)}</span>
+                                ${nisaBadge}
+                            </div>
+                            <div class="dividend-row-amount ${amount > 0 ? '' : 'is-zero'}">
+                                ${amount > 0 ? formatters.formatCurrency(amount) : '無配'}
+                            </div>
+                        </div>
+                        <div class="dividend-row-bar">
+                            <span class="dividend-row-bar-fill cat-${h.category}" style="width: ${width}%;"></span>
+                        </div>
+                        <div class="dividend-row-meta">
+                            <span><span class="dividend-dot cat-${h.category}"></span>${formatters.escapeHtml(h.ticker)}</span>
+                            ${amount > 0 ? `<span>構成比 ${formatters.formatPercentage(share, 1)}</span>` : ''}
+                            ${amount > 0 ? `<span>利回り ${formatters.formatPercentage(h.value > 0 ? (amount / h.value) * 100 : 0, 2)}</span>` : ''}
+                            ${months ? `<span>${months}</span>` : ''}
+                        </div>
+                    </div>
+                </li>
+            `;
+        };
+
+        const visible = holdings.slice(0, visibleCount).map(row).join('');
+        const rest = holdings.slice(visibleCount);
+
+        return `
+            <ol class="dividend-ranking">${visible}</ol>
+            ${rest.length > 0 ? `
+                <details class="dividend-more">
+                    <summary>他 ${rest.length} 銘柄を表示</summary>
+                    <ol class="dividend-ranking">${rest.map((h, i) => row(h, i + visibleCount)).join('')}</ol>
+                </details>
+            ` : ''}
         `;
     }
 

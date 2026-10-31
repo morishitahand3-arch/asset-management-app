@@ -1,6 +1,6 @@
 // Calculation Service - Asset calculations and aggregations
 
-import { ASSET_TYPES, ASSET_TYPE_LABELS, CHART_CATEGORIES, CHART_CATEGORY_LABELS } from '../utils/constants.js';
+import { ASSET_TYPES, ASSET_TYPE_LABELS, CHART_CATEGORIES, CHART_CATEGORY_LABELS, DIVIDEND_TAX } from '../utils/constants.js';
 
 export class CalculationService {
     // 株式が韓国株かを判定
@@ -468,15 +468,20 @@ export class CalculationService {
         return CHART_CATEGORIES.STOCK_US;
     }
 
-    // 配当サマリーを計算（過去12ヶ月の配当実績 × 現在の保有株数、税引前・円換算）
+    // 配当サマリーを計算（過去12ヶ月の配当実績 × 現在の保有株数、円換算）
+    // 税引前（gross）と税引後（net）の両方を返す
     calculateDividendSummary(assets, dividendCache) {
-        const monthlyByCategory = {
+        const emptyMonthly = () => ({
             [CHART_CATEGORIES.STOCK_JP]: new Array(12).fill(0),
             [CHART_CATEGORIES.STOCK_US]: new Array(12).fill(0),
             [CHART_CATEGORIES.STOCK_KR]: new Array(12).fill(0)
+        });
+        const totals = {
+            gross: { annual: 0, monthly: emptyMonthly() },
+            net: { annual: 0, monthly: emptyMonthly() }
         };
 
-        let annualTotal = 0;
+        const holdingsByTicker = new Map();
         let coveredValue = 0;     // 配当データ取得済み銘柄の評価額
         let coveredCostBasis = 0; // 配当データ取得済み銘柄の取得額
         let missingCount = 0;
@@ -490,13 +495,39 @@ export class CalculationService {
             }
 
             const category = this.getStockCategory(asset);
+            const netRatio = this.getDividendNetRatio(asset, category);
+
+            if (!holdingsByTicker.has(asset.ticker)) {
+                holdingsByTicker.set(asset.ticker, {
+                    ticker: asset.ticker,
+                    name: asset.name,
+                    category,
+                    gross: 0,
+                    net: 0,
+                    value: 0,
+                    nisaQuantity: 0,
+                    quantity: 0,
+                    months: [...new Set(entry.dividends.map(d => Number(d.date.slice(5, 7))))].sort((a, b) => a - b)
+                });
+            }
+            const holding = holdingsByTicker.get(asset.ticker);
+
             entry.dividends.forEach(dividend => {
-                const amount = dividend.amount * entry.jpyRate * asset.quantity;
+                const gross = dividend.amount * entry.jpyRate * asset.quantity;
+                const net = gross * netRatio;
                 const month = Number(dividend.date.slice(5, 7)) - 1; // 権利落ち月（YYYY-MM-DD）
-                monthlyByCategory[category][month] += amount;
-                annualTotal += amount;
+
+                totals.gross.monthly[category][month] += gross;
+                totals.net.monthly[category][month] += net;
+                totals.gross.annual += gross;
+                totals.net.annual += net;
+                holding.gross += gross;
+                holding.net += net;
             });
 
+            holding.value += asset.getCurrentValue();
+            holding.quantity += asset.quantity;
+            holding.nisaQuantity += Math.min(asset.nisaQuantity || 0, asset.quantity);
             coveredValue += asset.getCurrentValue();
             coveredCostBasis += asset.quantity * asset.averagePrice;
             if (!lastUpdated || entry.fetchedAt > lastUpdated) {
@@ -504,37 +535,62 @@ export class CalculationService {
             }
         });
 
+        const withRates = (t) => ({
+            ...t,
+            monthlyAverage: t.annual / 12,
+            dividendYield: coveredValue > 0 ? (t.annual / coveredValue) * 100 : 0,
+            yieldOnCost: coveredCostBasis > 0 ? (t.annual / coveredCostBasis) * 100 : 0
+        });
+
+        const holdings = [...holdingsByTicker.values()]
+            .map(h => ({
+                ...h,
+                dividendYield: h.value > 0 ? (h.gross / h.value) * 100 : 0,
+                grossShare: totals.gross.annual > 0 ? (h.gross / totals.gross.annual) * 100 : 0,
+                netShare: totals.net.annual > 0 ? (h.net / totals.net.annual) * 100 : 0
+            }));
+
         return {
-            annualTotal,
-            monthlyAverage: annualTotal / 12,
-            dividendYield: coveredValue > 0 ? (annualTotal / coveredValue) * 100 : 0,
-            yieldOnCost: coveredCostBasis > 0 ? (annualTotal / coveredCostBasis) * 100 : 0,
-            monthlyByCategory,
+            gross: withRates(totals.gross),
+            net: withRates(totals.net),
+            tax: totals.gross.annual - totals.net.annual,
+            holdings,
             missingCount,
             lastUpdated
         };
     }
 
+    // 税引後の手取り割合（外国源泉徴収 → 課税口座分のみ国内課税）
+    getDividendNetRatio(asset, category) {
+        const foreignRate = DIVIDEND_TAX.FOREIGN_WITHHOLDING[category] || 0;
+        const nisaRatio = asset.quantity > 0
+            ? Math.min(asset.nisaQuantity || 0, asset.quantity) / asset.quantity
+            : 0;
+        const domesticRatio = nisaRatio + (1 - nisaRatio) * (1 - DIVIDEND_TAX.DOMESTIC_RATE);
+        return (1 - foreignRate) * domesticRatio;
+    }
+
     // 月別配当グラフ用のデータを生成（カテゴリ別積み上げ棒グラフ）
-    generateDividendChartData(summary) {
+    generateDividendChartData(summary, mode = 'net') {
         const labels = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+        const monthly = summary[mode].monthly;
 
         const categories = [
-            { key: CHART_CATEGORIES.STOCK_JP, color: { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' } },
-            { key: CHART_CATEGORIES.STOCK_US, color: { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgba(99, 102, 241, 1)' } },
-            { key: CHART_CATEGORIES.STOCK_KR, color: { bg: 'rgba(236, 72, 153, 0.8)', border: 'rgba(236, 72, 153, 1)' } }
+            { key: CHART_CATEGORIES.STOCK_JP, color: '#3b82f6' },
+            { key: CHART_CATEGORIES.STOCK_US, color: '#6366f1' },
+            { key: CHART_CATEGORIES.STOCK_KR, color: '#ec4899' }
         ];
 
-        // 配当のないカテゴリは凡例に出さない
-        const datasets = categories
-            .filter(category => summary.monthlyByCategory[category.key].some(v => v > 0))
-            .map(category => ({
-                label: CHART_CATEGORY_LABELS[category.key],
-                data: summary.monthlyByCategory[category.key],
-                backgroundColor: category.color.bg,
-                borderColor: category.color.border,
-                borderWidth: 1
-            }));
+        // 配当のないカテゴリは凡例に出さない。角丸は積み上げの一番上だけに付ける
+        const visible = categories.filter(category => monthly[category.key].some(v => v > 0));
+        const datasets = visible.map((category, index) => ({
+            label: CHART_CATEGORY_LABELS[category.key],
+            data: monthly[category.key],
+            backgroundColor: category.color,
+            borderRadius: index === visible.length - 1 ? { topLeft: 4, topRight: 4 } : 0,
+            borderSkipped: false,
+            maxBarThickness: 28
+        }));
 
         return {
             labels,

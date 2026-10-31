@@ -92,6 +92,7 @@ body {
 /* Main Content */
 .main-content {
     flex: 1;
+    min-width: 0; /* 幅の広い表があっても画面幅を超えて広がらないようにする */
     padding: var(--spacing-xl);
     max-width: 1400px;
     margin: 0 auto;
@@ -159,11 +160,11 @@ body {
     }
 
     .grid-2 {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .grid-3 {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
@@ -201,6 +202,7 @@ body {
 
     .sidebar-text {
         font-size: var(--font-size-xs);
+        white-space: nowrap;
     }
 
     .main-content {

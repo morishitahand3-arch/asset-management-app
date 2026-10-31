@@ -176,10 +176,14 @@ export class AssetFormView {
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="exchange">取引所</label>
-                    <input type="text" id="exchange" name="exchange" class="form-input"
-                           placeholder="例: 東証"
-                           value="${data.exchange || ''}">
+                    <label class="form-label" for="nisaQuantity">うちNISA口座の株数</label>
+                    <input type="number" id="nisaQuantity" name="nisaQuantity" class="form-input"
+                           placeholder="0" step="1" min="0"
+                           value="${data.nisaQuantity || ''}">
+                    <div class="form-error" id="nisaQuantity-error"></div>
+                    <div style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: var(--spacing-xs);">
+                        税引後配当の計算に使用（空欄＝すべて課税口座）
+                    </div>
                 </div>
             </div>
 
@@ -204,6 +208,13 @@ export class AssetFormView {
                     </div>
                     <div class="form-error" id="currentPrice-error"></div>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="exchange">取引所</label>
+                <input type="text" id="exchange" name="exchange" class="form-input"
+                       placeholder="例: 東証"
+                       value="${data.exchange || ''}">
             </div>
 
             <div class="form-group">

@@ -12,6 +12,7 @@ export class StockAsset extends Asset {
         this.averagePrice = data.averagePrice || 0;
         this.currentPrice = data.currentPrice || 0;
         this.exchange = data.exchange || '';
+        this.nisaQuantity = data.nisaQuantity || 0; // 保有株数のうちNISA口座の株数
     }
 
     getCurrentValue() {
@@ -37,7 +38,8 @@ export class StockAsset extends Asset {
             quantity: this.quantity,
             averagePrice: this.averagePrice,
             currentPrice: this.currentPrice,
-            exchange: this.exchange
+            exchange: this.exchange,
+            nisaQuantity: this.nisaQuantity
         };
     }
 

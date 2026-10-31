@@ -130,6 +130,10 @@ export const validators = {
             }
         }
 
+        if (data.nisaQuantity && !errors.quantity && parseFloat(data.nisaQuantity) > parseFloat(data.quantity)) {
+            errors.nisaQuantity = 'NISA口座の株数は保有株数以下にしてください';
+        }
+
         return errors;
     },
 

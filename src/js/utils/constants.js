@@ -92,6 +92,16 @@ export const STORAGE_KEYS = {
 
 export const APP_VERSION = '1.0.0';
 
+// 配当金にかかる税率（課税口座。NISAは国内課税なし・外国課税のみ）
+export const DIVIDEND_TAX = {
+    DOMESTIC_RATE: 0.20315, // 所得税15.315% + 住民税5%
+    FOREIGN_WITHHOLDING: {  // 現地源泉徴収（外国税額控除は考慮しない）
+        stock_jp: 0,
+        stock_us: 0.10,
+        stock_kr: 0.15
+    }
+};
+
 export const SORT_OPTIONS = {
     NAME_ASC: 'name_asc',
     NAME_DESC: 'name_desc',

@@ -86,6 +86,11 @@ class CsvImportService {
         return dataRows;
     }
 
+    // 口座区分がNISA（成長投資枠・つみたて投資枠・旧NISA等）か
+    isNisaAccount(account) {
+        return !!account && account.toUpperCase().includes('NISA');
+    }
+
     // 同一銘柄を合算（数量合計、加重平均価額）
     mergeRows(rows) {
         const groups = new Map();
@@ -99,6 +104,7 @@ class CsvImportService {
             if (!groups.has(key)) {
                 groups.set(key, {
                     ...row,
+                    nisaQuantity: this.isNisaAccount(row.account) ? row.quantity : 0,
                     totalCost: row.quantity * row.averagePrice,
                     currentPrice: row.currentPrice
                 });
@@ -106,6 +112,9 @@ class CsvImportService {
                 const existing = groups.get(key);
                 existing.totalCost += row.quantity * row.averagePrice;
                 existing.quantity += row.quantity;
+                if (this.isNisaAccount(row.account)) {
+                    existing.nisaQuantity += row.quantity;
+                }
                 // 現在価格は同一なので最新を採用
                 existing.currentPrice = row.currentPrice;
             }
@@ -132,6 +141,7 @@ class CsvImportService {
                     quantity: row.quantity,
                     averagePrice: row.averagePrice,
                     currentPrice: row.currentPrice,
+                    nisaQuantity: row.nisaQuantity,
                     exchange: 'JP',
                     currency: 'JPY'
                 };
@@ -143,6 +153,7 @@ class CsvImportService {
                     quantity: row.quantity,
                     averagePrice: row.averagePrice,
                     currentPrice: row.currentPrice,
+                    nisaQuantity: row.nisaQuantity,
                     exchange: 'US',
                     currency: 'JPY'
                 };

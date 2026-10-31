@@ -240,7 +240,8 @@ export class AssetFormController {
             amount: formData.amount ? parseFloat(formData.amount) : undefined,
             quantity: formData.quantity ? parseFloat(formData.quantity) : undefined,
             averagePrice: formData.averagePrice ? parseFloat(formData.averagePrice) : undefined,
-            currentPrice: formData.currentPrice ? parseFloat(formData.currentPrice) : undefined
+            currentPrice: formData.currentPrice ? parseFloat(formData.currentPrice) : undefined,
+            nisaQuantity: formData.nisaQuantity ? parseFloat(formData.nisaQuantity) : undefined
         };
 
         switch (formData.type) {

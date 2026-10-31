@@ -30,13 +30,10 @@ export class DashboardController {
             storageService.saveHistorySnapshot(stats.totalValue, breakdown);
         }
 
-        // 配当サマリー（株式を保有している場合のみ）
+        // 配当セクションは株式を保有している場合のみ表示
         const hasStocks = assets.some(asset => asset.type === ASSET_TYPES.STOCK);
-        const dividendSummary = hasStocks
-            ? calculationService.calculateDividendSummary(assets, dividendService.getCache())
-            : null;
 
-        this.view.render(stats, dividendSummary);
+        this.view.render(stats, hasStocks);
         this.attachEventHandlers();
 
         // グラフを描画（資産がある場合のみ）
@@ -44,21 +41,61 @@ export class DashboardController {
             this.renderAllocationChart(assets);
             this.renderMonthlyChart();
             this.renderTreemapChart(assets, stats.totalValue);
-            this.renderDividendChart(dividendSummary);
+        }
+
+        if (hasStocks) {
+            this.renderDividendSection(assets);
+        } else {
+            this.dividendChartView.destroyChart();
         }
     }
 
-    // 月別配当グラフを描画
-    renderDividendChart(summary) {
-        if (!summary || summary.lastUpdated === null) {
+    // 配当表示モード（税引後 net / 税引前 gross）。端末ごとに記憶する
+    getDividendMode() {
+        try {
+            return localStorage.getItem('assetApp.dividendMode') === 'gross' ? 'gross' : 'net';
+        } catch {
+            return 'net';
+        }
+    }
+
+    setDividendMode(mode) {
+        try {
+            localStorage.setItem('assetApp.dividendMode', mode);
+        } catch {
+            // 保存できなくても表示切替はそのまま行う
+        }
+    }
+
+    // 配当セクション（サマリー・月別グラフ・銘柄別ランキング）を描画
+    renderDividendSection(assets = assetService.getAllAssets()) {
+        const summary = calculationService.calculateDividendSummary(assets, dividendService.getCache());
+        const mode = this.getDividendMode();
+
+        this.view.renderDividendSection(summary, mode);
+
+        ['update-dividends', 'update-dividends-empty'].forEach(id => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', () => this.handleUpdateDividends());
+            }
+        });
+
+        document.querySelectorAll('[data-dividend-mode]').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.dataset.dividendMode === mode) return;
+                this.setDividendMode(button.dataset.dividendMode);
+                this.renderDividendSection();
+            });
+        });
+
+        if (summary.lastUpdated === null) {
             this.dividendChartView.destroyChart();
             return;
         }
 
-        const chartData = calculationService.generateDividendChartData(summary);
-        setTimeout(() => {
-            this.dividendChartView.renderDividendChart('dividend-monthly-chart', chartData);
-        }, 250);
+        const chartData = calculationService.generateDividendChartData(summary, mode);
+        this.dividendChartView.renderDividendChart('dividend-monthly-chart', chartData);
     }
 
     // 資産構成グラフを描画
@@ -145,13 +182,6 @@ export class DashboardController {
         if (bulkUpdateBtn) {
             bulkUpdateBtn.addEventListener('click', () => {
                 this.handleBulkPriceUpdate();
-            });
-        }
-
-        const updateDividendsBtn = document.getElementById('update-dividends');
-        if (updateDividendsBtn) {
-            updateDividendsBtn.addEventListener('click', () => {
-                this.handleUpdateDividends();
             });
         }
 
@@ -245,30 +275,30 @@ export class DashboardController {
 
     // 配当データ取得処理
     async handleUpdateDividends() {
-        const button = document.getElementById('update-dividends');
-        if (!button) return;
+        const buttons = ['update-dividends', 'update-dividends-empty']
+            .map(id => document.getElementById(id))
+            .filter(Boolean);
+        const subtitle = document.querySelector('.dividend-subtitle');
+        if (buttons.length === 0) return;
 
-        button.disabled = true;
-        button.textContent = '取得中...';
+        buttons.forEach(button => {
+            button.disabled = true;
+            button.classList.add('is-loading');
+        });
+        if (subtitle) subtitle.textContent = '配当データを取得中...';
 
         try {
             const result = await dividendService.updateAllDividends((progress) => {
-                button.textContent = `取得中... ${progress.completed}/${progress.total}`;
+                if (subtitle) subtitle.textContent = `配当データを取得中... ${progress.completed}/${progress.total}`;
             });
 
             this.showToast(result.message, result.success ? 'success' : 'error');
-            if (result.success) {
-                this.renderDashboard();
-            }
         } catch (error) {
             console.error('Dividend update error:', error);
             this.showToast('配当データの取得中にエラーが発生しました', 'error');
         } finally {
-            // 再レンダリング後は新しいボタンに置き換わるため、元のボタンが残っている場合のみ戻す
-            if (document.body.contains(button)) {
-                button.disabled = false;
-                button.textContent = '🔄 配当データを取得';
-            }
+            // 成功・失敗どちらでもセクションを描き直してボタン状態を戻す
+            this.renderDividendSection();
         }
     }
 
