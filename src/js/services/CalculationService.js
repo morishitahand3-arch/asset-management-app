@@ -399,9 +399,10 @@ export class CalculationService {
                 labels: categories.map(item => item.label),
                 datasets: [{
                     data: categories.map(item => item.value),
-                    backgroundColor: categories.map(item => colorMap[item.category].bg),
-                    borderColor: categories.map(item => colorMap[item.category].border),
-                    borderWidth: 2
+                    backgroundColor: categories.map(item => colorMap[item.category].border),
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    hoverOffset: 6
                 }]
             };
         }
@@ -449,9 +450,9 @@ export class CalculationService {
                     // breakdownからカテゴリの値を取得、なければ0
                     return item.breakdown && item.breakdown[category.key] ? item.breakdown[category.key] : 0;
                 }),
-                backgroundColor: category.color.bg,
-                borderColor: category.color.border,
-                borderWidth: 1
+                backgroundColor: category.color.border,
+                borderWidth: 0,
+                maxBarThickness: 48
             };
         });
 

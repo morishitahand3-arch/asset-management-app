@@ -49,7 +49,8 @@ asset-manegement-app/
 │   │   │   ├── PriceService.js         # Yahoo Finance / CoinGecko API連携
 │   │   │   ├── StorageService.js       # LocalStorageラッパー
 │   │   │   ├── CalculationService.js   # 金融計算・集計
-│   │   │   └── BulkPriceUpdateService.js # 一括価格更新
+│   │   │   ├── BulkPriceUpdateService.js # 一括価格更新
+│   │   │   └── DividendService.js      # 配当データ取得・キャッシュ
 │   │   └── utils/                      # ユーティリティ
 │   │       ├── constants.js            # 資産タイプ、列挙、ラベル定義
 │   │       ├── formatters.js           # 数値・通貨フォーマット
@@ -59,7 +60,8 @@ asset-manegement-app/
 │       ├── reset.css                   # CSSリセット
 │       ├── layout.css                  # レイアウト（グリッド、フレックス）
 │       ├── components.css              # 共通コンポーネント
-│       ├── dashboard.css               # ダッシュボード固有
+│       ├── dashboard.css               # ダッシュボード固有（配当カード含む）
+│       ├── views.css                   # 資産一覧・登録フォーム・設定
 │       └── responsive.css              # レスポンシブ（480px / 768px / 1024px / 1440px）
 ├── data/
 ├── docs/

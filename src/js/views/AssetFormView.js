@@ -69,7 +69,7 @@ export class AssetFormView {
                     </div>
                 `).join('')}
             </div>
-            ${this.editMode ? '<p style="font-size: var(--font-size-sm); color: var(--text-tertiary); margin-top: var(--spacing-sm);">※ 編集時は資産タイプを変更できません</p>' : ''}
+            ${this.editMode ? '<p class="asset-type-note">※ 編集時は資産タイプを変更できません</p>' : ''}
         `;
     }
 
@@ -160,7 +160,7 @@ export class AssetFormView {
                     <input type="text" id="ticker" name="ticker" class="form-input"
                            placeholder="例: 7203 / AAPL / 005930"
                            value="${data.ticker || ''}">
-                    <div style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: var(--spacing-xs);">
+                    <div class="form-hint">
                         4桁=日本株 / 英字=米国株 / 6桁=韓国株(KOSPI)
                     </div>
                 </div>
@@ -181,7 +181,7 @@ export class AssetFormView {
                            placeholder="0" step="1" min="0"
                            value="${data.nisaQuantity || ''}">
                     <div class="form-error" id="nisaQuantity-error"></div>
-                    <div style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: var(--spacing-xs);">
+                    <div class="form-hint">
                         税引後配当の計算に使用（空欄＝すべて課税口座）
                     </div>
                 </div>
@@ -248,7 +248,7 @@ export class AssetFormView {
                             🔗 確認
                         </button>
                     </div>
-                    <div style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: var(--spacing-xs);">
+                    <div class="form-hint">
                         💡 コード入力後、「🔗 確認」ボタンで基準価額を確認できます
                     </div>
                 </div>
@@ -295,7 +295,7 @@ export class AssetFormView {
                             🔗 確認
                         </button>
                     </div>
-                    <div style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: var(--spacing-xs);">
+                    <div class="form-hint">
                         💡 「🔗 確認」ボタンで基準価額確認サイトを開けます
                     </div>
                     <div class="form-error" id="currentPrice-error"></div>

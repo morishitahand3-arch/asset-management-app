@@ -32,12 +32,25 @@ export class AssetListController {
         // 検索/フィルタが適用されているかどうか
         const isFiltered = this.currentSearchQuery !== '' || this.currentFilter !== 'all';
 
+        // 再描画で検索欄のフォーカスが外れないよう、入力中かどうかを覚えておく
+        const wasSearching = document.activeElement && document.activeElement.id === 'asset-search';
+
         this.view.render(filteredAssets, {
             searchQuery: this.currentSearchQuery,
             currentFilter: this.currentFilter,
+            sortOption: this.currentSortOption,
             isFiltered: isFiltered
         });
         this.attachEventHandlers();
+
+        if (wasSearching) {
+            const searchInput = this.view.container.querySelector('#asset-search');
+            if (searchInput) {
+                searchInput.focus();
+                const end = searchInput.value.length;
+                searchInput.setSelectionRange(end, end);
+            }
+        }
     }
 
     // イベントハンドラーをアタッチ

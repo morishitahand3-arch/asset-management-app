@@ -1,0 +1,331 @@
+/* View Styles - 資産一覧・登録フォーム・設定 */
+
+/* ===== 資産一覧 ===== */
+.asset-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: var(--spacing-md);
+}
+
+.asset-search-row {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.search-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-field-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.search-field .form-input {
+    padding-left: 36px;
+}
+
+#asset-sort {
+    width: auto;
+    flex-shrink: 0;
+}
+
+.asset-search-row .btn {
+    min-height: 44px;
+}
+
+.asset-list-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.asset-list-summary strong {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+}
+
+.asset-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .asset-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .asset-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.asset-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: var(--spacing-md);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.asset-card:hover {
+    border-color: var(--border-dark);
+    box-shadow: var(--shadow-md);
+}
+
+.asset-card-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.asset-card-main .asset-summary-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 18px;
+}
+
+.asset-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.asset-name {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-card-sub {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-card-value {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.asset-value {
+    font-size: var(--font-size-lg);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.asset-profit {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.asset-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.asset-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    min-width: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.asset-link {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.asset-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.asset-actions .icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .asset-search-row {
+        flex-wrap: wrap;
+    }
+
+    .search-field {
+        flex-basis: 100%;
+    }
+
+    #asset-sort {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* ===== 登録・編集フォーム ===== */
+.asset-form {
+    max-width: 760px;
+    padding: var(--spacing-xl);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.asset-form .form-row .form-group {
+    margin-bottom: 0;
+}
+
+.asset-form .form-row {
+    margin-bottom: var(--spacing-lg);
+}
+
+.asset-type-note {
+    margin: calc(-1 * var(--spacing-lg)) 0 var(--spacing-lg);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.asset-form .form-actions {
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+}
+
+.asset-form .form-actions .btn {
+    min-width: 140px;
+}
+
+@media (max-width: 639px) {
+    .asset-form {
+        padding: var(--spacing-md);
+    }
+
+    .asset-form .form-row {
+        margin-bottom: 0;
+    }
+
+    .asset-form .form-row .form-group {
+        margin-bottom: var(--spacing-lg);
+    }
+}
+
+/* ===== 設定 ===== */
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    max-width: 760px;
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.settings-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 20px;
+    background-color: var(--primary-soft);
+}
+
+.settings-icon.warning {
+    background-color: #fff7ed;
+}
+
+.settings-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-title {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.settings-desc {
+    margin-top: 2px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.settings-warning {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: #c2410c;
+}
+
+.settings-filename {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.settings-filename:empty {
+    display: none;
+}
+
+.settings-action {
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .settings-item {
+        flex-wrap: wrap;
+    }
+
+    .settings-action {
+        flex-basis: 100%;
+    }
+
+    .settings-action .btn {
+        width: 100%;
+    }
+}

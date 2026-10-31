@@ -2,36 +2,17 @@
 
 /* Mobile (< 480px) */
 @media (max-width: 479px) {
-    .view-title {
-        font-size: var(--font-size-xl);
-    }
-
     .total-value-amount {
-        font-size: var(--font-size-2xl);
+        font-size: 2rem;
     }
 
     .card {
         padding: var(--spacing-md);
     }
-
-    .asset-type-selector {
-        gap: var(--spacing-sm);
-    }
-
-    .asset-type-option {
-        min-width: 100px;
-        padding: var(--spacing-sm);
-    }
-
-    .asset-type-option .type-icon {
-        font-size: var(--font-size-xl);
-    }
-
-
 }
 
-/* Tablet (480px - 1023px) */
-@media (min-width: 480px) and (max-width: 1023px) {
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
     .main-content {
         padding: var(--spacing-lg);
     }
@@ -41,20 +22,19 @@
     }
 }
 
-/* Desktop (>= 1024px) */
-@media (min-width: 1024px) {
+/* フォームの2列配置（640px以上） */
+@media (min-width: 640px) {
     .form-row {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--spacing-lg);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spacing-md) var(--spacing-lg);
     }
+}
 
-    .form-row .form-group {
-        margin-bottom: 0;
-    }
-
+/* Desktop (>= 1024px) */
+@media (min-width: 1024px) {
     .chart-wrapper {
-        height: 400px;
+        height: 320px;
     }
 }
 

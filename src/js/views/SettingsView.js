@@ -11,26 +11,37 @@ export class SettingsView {
         if (!this.container) return;
 
         this.container.innerHTML = `
-            <div class="card" style="margin-bottom: var(--spacing-lg);">
-                <h3 class="card-title">データエクスポート</h3>
-                <p style="margin-bottom: var(--spacing-md); color: var(--text-secondary);">
-                    現在のデータをJSONファイルとしてダウンロードします。<br>
-                    別のデバイスへのデータ移行やバックアップに使用できます。
-                </p>
-                <button class="btn btn-primary" id="export-btn">エクスポート</button>
-            </div>
+            <div class="settings-list">
+                <div class="card settings-item">
+                    <span class="settings-icon">📤</span>
+                    <div class="settings-body">
+                        <h3 class="settings-title">データエクスポート</h3>
+                        <p class="settings-desc">
+                            現在のデータをJSONファイルとしてダウンロードします。別の端末への移行やバックアップに使えます。
+                        </p>
+                    </div>
+                    <div class="settings-action">
+                        <button class="btn btn-primary" id="export-btn">エクスポート</button>
+                    </div>
+                </div>
 
-            <div class="card">
-                <h3 class="card-title">データインポート</h3>
-                <p style="margin-bottom: var(--spacing-md); color: var(--text-secondary);">
-                    エクスポートしたJSONファイルを読み込んでデータを復元します。<br>
-                    <strong>注意：現在のデータは上書きされます。</strong>
-                </p>
-                <label class="btn btn-secondary" style="cursor: pointer;">
-                    ファイルを選択
-                    <input type="file" id="import-file" accept=".json" style="display: none;">
-                </label>
-                <span id="import-filename" style="margin-left: var(--spacing-sm); color: var(--text-secondary);"></span>
+                <div class="card settings-item">
+                    <span class="settings-icon warning">📥</span>
+                    <div class="settings-body">
+                        <h3 class="settings-title">データインポート</h3>
+                        <p class="settings-desc">
+                            エクスポートしたJSONファイルを読み込んでデータを復元します。
+                            <span class="settings-warning">⚠ 現在のデータは上書きされます</span>
+                            <span class="settings-filename" id="import-filename"></span>
+                        </p>
+                    </div>
+                    <div class="settings-action">
+                        <label class="btn btn-secondary">
+                            ファイルを選択
+                            <input type="file" id="import-file" accept=".json" style="display: none;">
+                        </label>
+                    </div>
+                </div>
             </div>
         `;
 

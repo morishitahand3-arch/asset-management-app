@@ -3,6 +3,23 @@
 import { ASSET_TYPE_LABELS, ASSET_TYPE_ICONS } from '../utils/constants.js';
 import { formatters } from '../utils/formatters.js';
 
+const FILTERS = [
+    { value: 'all', label: 'すべて' },
+    { value: 'cash', label: '💵 現金' },
+    { value: 'stock', label: '📈 株式' },
+    { value: 'fund', label: '📊 投資信託' },
+    { value: 'crypto', label: '₿ 暗号資産' }
+];
+
+const SORT_OPTIONS = [
+    { value: 'date_desc', label: '更新日（新しい順）' },
+    { value: 'date_asc', label: '更新日（古い順）' },
+    { value: 'name_asc', label: '名前（昇順）' },
+    { value: 'name_desc', label: '名前（降順）' },
+    { value: 'value_desc', label: '金額（高い順）' },
+    { value: 'value_asc', label: '金額（低い順）' }
+];
+
 export class AssetListView {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -18,16 +35,20 @@ export class AssetListView {
             emptyMessage = '資産が登録されていません',
             isFiltered = false,
             searchQuery = '',
-            currentFilter = 'all'
+            currentFilter = 'all',
+            sortOption = 'date_desc'
         } = options;
+
+        const toolbar = showFilters || showSearch
+            ? this.generateToolbar(showFilters, showSearch, currentFilter, sortOption)
+            : '';
 
         // 検索/フィルタ結果が0件の場合
         if (assets.length === 0 && (isFiltered || searchQuery || currentFilter !== 'all')) {
-            const html = `
-                ${this.generateToolbar(showFilters, showSearch)}
+            this.container.innerHTML = `
+                ${toolbar}
                 ${this.generateNoResultsState(searchQuery, currentFilter)}
             `;
-            this.container.innerHTML = html;
             return;
         }
 
@@ -37,56 +58,49 @@ export class AssetListView {
             return;
         }
 
-        const html = `
-            ${showFilters || showSearch ? this.generateToolbar(showFilters, showSearch) : ''}
-            <div class="asset-grid grid-3">
+        const total = assets.reduce((sum, asset) => sum + asset.getCurrentValue(), 0);
+
+        this.container.innerHTML = `
+            ${toolbar}
+            <div class="asset-list-summary">
+                <span>${assets.length}件</span>
+                <span>合計 <strong>${formatters.formatCurrency(total)}</strong></span>
+            </div>
+            <div class="asset-grid">
                 ${assets.map(asset => this.generateAssetCard(asset)).join('')}
             </div>
         `;
-
-        this.container.innerHTML = html;
     }
 
     // ツールバー生成（フィルタ・検索）
-    generateToolbar(showFilters, showSearch) {
+    generateToolbar(showFilters, showSearch, currentFilter, sortOption) {
         return `
-            <div class="asset-toolbar" style="margin-bottom: var(--spacing-lg);">
-                ${showFilters ? `
-                    <div class="filter-buttons" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; margin-bottom: var(--spacing-md);">
-                        <button class="btn btn-sm btn-secondary filter-btn active" data-filter="all">
-                            すべて
-                        </button>
-                        <button class="btn btn-sm btn-secondary filter-btn" data-filter="cash">
-                            💵 現金
-                        </button>
-                        <button class="btn btn-sm btn-secondary filter-btn" data-filter="stock">
-                            📈 株式
-                        </button>
-                        <button class="btn btn-sm btn-secondary filter-btn" data-filter="fund">
-                            📊 投資信託
-                        </button>
-                        <button class="btn btn-sm btn-secondary filter-btn" data-filter="crypto">
-                            ₿ 暗号資産
-                        </button>
-                    </div>
-                ` : ''}
+            <div class="asset-toolbar">
                 ${showSearch ? `
-                    <div class="search-box" style="display: flex; gap: var(--spacing-md);">
-                        <input type="text" id="asset-search" class="form-input"
-                               placeholder="資産名、ティッカー、シンボルで検索..."
-                               style="flex: 1;">
-                        <select id="asset-sort" class="form-select" style="width: 200px;">
-                            <option value="date_desc">更新日（新しい順）</option>
-                            <option value="date_asc">更新日（古い順）</option>
-                            <option value="name_asc">名前（昇順）</option>
-                            <option value="name_desc">名前（降順）</option>
-                            <option value="value_desc">金額（高い順）</option>
-                            <option value="value_asc">金額（低い順）</option>
+                    <div class="asset-search-row">
+                        <div class="search-field">
+                            <span class="search-field-icon" aria-hidden="true">🔍</span>
+                            <input type="search" id="asset-search" class="form-input"
+                                   placeholder="資産名・ティッカー・シンボルで検索">
+                        </div>
+                        <select id="asset-sort" class="form-select" aria-label="並び順">
+                            ${SORT_OPTIONS.map(opt => `
+                                <option value="${opt.value}" ${opt.value === sortOption ? 'selected' : ''}>${opt.label}</option>
+                            `).join('')}
                         </select>
-                        <button class="btn btn-sm btn-secondary" id="csv-import-btn" title="CSVインポート">
-                            📥 CSVインポート
+                        <button class="btn btn-secondary" id="csv-import-btn" title="CSVインポート">
+                            📥 CSV取込
                         </button>
                         <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                    </div>
+                ` : ''}
+                ${showFilters ? `
+                    <div class="chip-group" role="group" aria-label="資産タイプで絞り込み">
+                        ${FILTERS.map(f => `
+                            <button class="chip filter-btn ${f.value === currentFilter ? 'active' : ''}" data-filter="${f.value}">
+                                ${f.label}
+                            </button>
+                        `).join('')}
                     </div>
                 ` : ''}
             </div>
@@ -98,146 +112,103 @@ export class AssetListView {
         const value = asset.getCurrentValue();
         const profit = asset.getProfit ? asset.getProfit() : null;
         const profitRate = asset.getProfitRate ? asset.getProfitRate() : null;
+        const profitClass = profit !== null ? formatters.getProfitClass(profit) : '';
 
         return `
             <div class="card asset-card" data-asset-id="${asset.id}" data-asset-type="${asset.type}">
-                <div class="asset-card-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-md);">
-                    <div>
-                        <div class="asset-type-badge" style="display: inline-flex; align-items: center; gap: var(--spacing-xs); font-size: var(--font-size-sm); color: var(--text-tertiary); margin-bottom: var(--spacing-xs);">
-                            <span>${ASSET_TYPE_ICONS[asset.type]}</span>
-                            <span>${ASSET_TYPE_LABELS[asset.type]}</span>
-                        </div>
-                        <h3 class="asset-name" style="font-size: var(--font-size-lg); font-weight: 600; color: var(--text-primary);">
-                            ${formatters.escapeHtml(asset.name)}
-                        </h3>
+                <div class="asset-card-main">
+                    <span class="asset-summary-icon ${asset.type}">${ASSET_TYPE_ICONS[asset.type]}</span>
+                    <div class="asset-card-info">
+                        <h3 class="asset-name">${formatters.escapeHtml(asset.name)}</h3>
+                        <div class="asset-card-sub">${this.generateSubline(asset)}</div>
                     </div>
-                    <div class="asset-actions" style="display: flex; gap: var(--spacing-xs);">
+                    <div class="asset-card-value">
+                        <div class="asset-value">${formatters.formatCurrency(value, asset.currency)}</div>
+                        ${profit !== null ? `
+                            <div class="asset-profit ${profitClass}">
+                                ${formatters.formatProfitWithSign(profit, asset.currency)}
+                                ${profitRate !== null ? `
+                                    <span class="delta ${profitClass}">${profitRate >= 0 ? '+' : ''}${formatters.formatPercentage(profitRate)}</span>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="asset-card-footer">
+                    <div class="asset-meta">
+                        ${this.generateAssetDetails(asset)}
+                        <span>更新 ${formatters.formatRelativeTime(asset.updatedAt)}</span>
+                    </div>
+                    <div class="asset-actions">
                         ${asset.type === 'fund' ? `
-                            <button class="btn btn-sm btn-primary update-price-btn"
-                                    data-asset-id="${asset.id}" title="基準価額を更新">
+                            <button class="icon-btn update-price-btn"
+                                    data-asset-id="${asset.id}" title="基準価額を更新" aria-label="基準価額を更新">
                                 🔄
                             </button>
                         ` : ''}
-                        <button class="btn btn-sm btn-secondary edit-asset-btn"
-                                data-asset-id="${asset.id}" title="編集">
+                        <button class="icon-btn edit-asset-btn"
+                                data-asset-id="${asset.id}" title="編集" aria-label="編集">
                             ✏️
                         </button>
-                        <button class="btn btn-sm btn-danger delete-asset-btn"
-                                data-asset-id="${asset.id}" title="削除">
+                        <button class="icon-btn danger delete-asset-btn"
+                                data-asset-id="${asset.id}" title="削除" aria-label="削除">
                             🗑️
                         </button>
                     </div>
                 </div>
-
-                <div class="asset-card-body">
-                    <div class="asset-value" style="font-size: var(--font-size-2xl); font-weight: 700; color: var(--text-primary); margin-bottom: var(--spacing-sm);">
-                        ${formatters.formatCurrency(value, asset.currency)}
-                    </div>
-
-                    ${this.generateAssetDetails(asset)}
-
-                    ${profit !== null ? `
-                        <div class="asset-profit" style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border-color);">
-                            <div class="profit-row" style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: var(--text-secondary); font-size: var(--font-size-sm);">評価損益</span>
-                                <span class="profit-value ${formatters.getProfitClass(profit)}"
-                                      style="font-weight: 600; font-size: var(--font-size-lg);">
-                                    ${formatters.formatProfitWithSign(profit, asset.currency)}
-                                </span>
-                            </div>
-                            ${profitRate !== null ? `
-                                <div class="profit-rate" style="text-align: right; color: var(--text-tertiary); font-size: var(--font-size-sm); margin-top: var(--spacing-xs);">
-                                    (${formatters.formatPercentage(profitRate)})
-                                </div>
-                            ` : ''}
-                        </div>
-                    ` : ''}
-
-                    <div class="asset-meta" style="margin-top: var(--spacing-md); color: var(--text-tertiary); font-size: var(--font-size-xs);">
-                        更新: ${formatters.formatRelativeTime(asset.updatedAt)}
-                    </div>
-                </div>
             </div>
         `;
     }
 
-    // 資産タイプ別の詳細情報
+    // 名前の下に出す要約（種類・コード・数量）
+    generateSubline(asset) {
+        const parts = [ASSET_TYPE_LABELS[asset.type]];
+
+        if (asset.type === 'cash') {
+            if (asset.bankName) parts.push(formatters.escapeHtml(asset.bankName));
+        } else if (asset.type === 'stock') {
+            if (asset.ticker) parts.push(formatters.escapeHtml(asset.ticker));
+            if (asset.quantity) parts.push(`${formatters.formatNumber(asset.quantity, 0)}株`);
+        } else if (asset.type === 'fund') {
+            if (asset.fundCode) parts.push(formatters.escapeHtml(asset.fundCode));
+            if (asset.quantity) parts.push(`${formatters.formatNumber(asset.quantity, 0)}口`);
+        } else if (asset.type === 'crypto') {
+            if (asset.symbol) parts.push(formatters.escapeHtml(asset.symbol));
+            if (asset.quantity) parts.push(formatters.formatNumber(asset.quantity, 8));
+        }
+
+        return parts.join(' · ');
+    }
+
+    // 資産タイプ別の補足情報（現在価格・リンク）
     generateAssetDetails(asset) {
         const details = [];
 
-        if (asset.type === 'cash') {
-            if (asset.bankName) {
-                details.push(`<div>銀行: ${formatters.escapeHtml(asset.bankName)}</div>`);
-            }
-        } else if (asset.type === 'stock') {
-            if (asset.ticker) {
-                details.push(`<div>ティッカー: ${formatters.escapeHtml(asset.ticker)}</div>`);
-            }
-            if (asset.quantity) {
-                details.push(`<div>株数: ${formatters.formatNumber(asset.quantity, 0)}株</div>`);
-            }
+        if (asset.type === 'stock' || asset.type === 'crypto') {
             if (asset.currentPrice) {
-                details.push(`<div>現在価格: ${formatters.formatCurrency(asset.currentPrice, asset.currency)}</div>`);
+                details.push(`<span>現在価格 ${formatters.formatCurrency(asset.currentPrice, asset.currency)}</span>`);
             }
         } else if (asset.type === 'fund') {
-            if (asset.fundCode) {
-                details.push(`<div>コード: ${formatters.escapeHtml(asset.fundCode)}</div>`);
-                // Yahoo Financeへのリンクを追加
-                details.push(`
-                    <div>
-                        <a href="https://finance.yahoo.co.jp/quote/${formatters.escapeHtml(asset.fundCode)}"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           style="color: var(--primary-color); text-decoration: none; font-size: var(--font-size-sm); display: inline-flex; align-items: center; gap: 4px;"
-                           onclick="event.stopPropagation();">
-                            🔗 Yahoo Finance で確認
-                        </a>
-                    </div>
-                `);
-            } else {
-                // ファンドコードがない場合、ファンド名で検索するリンクを表示
-                details.push(`
-                    <div>
-                        <a href="https://finance.yahoo.co.jp/search/?query=${encodeURIComponent(asset.name)}"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           style="color: var(--primary-color); text-decoration: none; font-size: var(--font-size-sm); display: inline-flex; align-items: center; gap: 4px;"
-                           onclick="event.stopPropagation();">
-                            🔍 Yahoo Finance で検索
-                        </a>
-                    </div>
-                `);
-            }
-            if (asset.quantity) {
-                details.push(`<div>口数: ${formatters.formatNumber(asset.quantity, 0)}口</div>`);
-            }
             if (asset.currentPrice) {
-                details.push(`<div>基準価額: ${formatters.formatNumber(asset.currentPrice, 0)}</div>`);
+                details.push(`<span>基準価額 ${formatters.formatNumber(asset.currentPrice, 0)}</span>`);
             }
-        } else if (asset.type === 'crypto') {
-            if (asset.symbol) {
-                details.push(`<div>シンボル: ${formatters.escapeHtml(asset.symbol)}</div>`);
-            }
-            if (asset.quantity) {
-                details.push(`<div>保有量: ${formatters.formatNumber(asset.quantity, 8)}</div>`);
-            }
-            if (asset.currentPrice) {
-                details.push(`<div>現在価格: ${formatters.formatCurrency(asset.currentPrice, asset.currency)}</div>`);
-            }
+            const url = asset.fundCode
+                ? `https://finance.yahoo.co.jp/quote/${encodeURIComponent(asset.fundCode)}`
+                : `https://finance.yahoo.co.jp/search/?query=${encodeURIComponent(asset.name)}`;
+            details.push(`
+                <a href="${url}" class="asset-link" target="_blank" rel="noopener noreferrer"
+                   onclick="event.stopPropagation();">
+                    ${asset.fundCode ? 'Yahoo!ファイナンスで確認' : 'Yahoo!ファイナンスで検索'} ↗
+                </a>
+            `);
         }
 
-        if (details.length === 0) return '';
-
-        return `
-            <div class="asset-details" style="color: var(--text-secondary); font-size: var(--font-size-sm); margin-top: var(--spacing-sm);">
-                ${details.join('')}
-            </div>
-        `;
+        return details.join('');
     }
 
     // 検索/フィルタ結果が0件の場合の表示
     generateNoResultsState(searchQuery, currentFilter) {
-        let message = '該当する資産が見つかりませんでした';
         let details = '';
 
         if (searchQuery && currentFilter !== 'all') {
@@ -245,20 +216,14 @@ export class AssetListView {
         } else if (searchQuery) {
             details = `検索キーワード「${formatters.escapeHtml(searchQuery)}」に一致する資産がありません`;
         } else if (currentFilter !== 'all') {
-            const filterLabels = {
-                'cash': '現金',
-                'stock': '株式',
-                'fund': '投資信託',
-                'crypto': '暗号資産'
-            };
-            details = `${filterLabels[currentFilter] || currentFilter}の資産がありません`;
+            details = `${ASSET_TYPE_LABELS[currentFilter] || currentFilter}の資産がありません`;
         }
 
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">🔍</div>
-                <div class="empty-state-text">${message}</div>
-                ${details ? `<p style="color: var(--text-tertiary); margin: var(--spacing-md) 0;">${details}</p>` : ''}
+                <div class="empty-state-text">該当する資産が見つかりませんでした</div>
+                ${details ? `<p class="empty-state-hint">${details}</p>` : ''}
                 <button class="btn btn-secondary" id="clear-search-filter">
                     検索・フィルタをクリア
                 </button>
@@ -272,7 +237,8 @@ export class AssetListView {
             <div class="empty-state">
                 <div class="empty-state-icon">📊</div>
                 <div class="empty-state-text">${message}</div>
-                <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                <p class="empty-state-hint">手入力で登録するか、証券会社のCSVを取り込めます</p>
+                <div class="empty-state-actions">
                     <button class="btn btn-primary" id="add-first-asset">
                         最初の資産を登録
                     </button>

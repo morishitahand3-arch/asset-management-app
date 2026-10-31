@@ -18,12 +18,12 @@ export class DashboardView {
         }
 
         const html = `
-            ${this.generateTotalValueCard(stats.totalValue)}
+            ${this.generateTotalValueCard(stats.totalValue, stats.profitLoss)}
             ${this.generateAssetSummaryGrid(stats.allocation)}
             <div class="grid grid-2">
-                <div class="chart-container">
+                <div class="card chart-container">
                     <h3 class="card-title">資産構成</h3>
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper allocation-chart-wrapper">
                         <canvas id="asset-allocation-chart"></canvas>
                     </div>
                 </div>
@@ -39,48 +39,56 @@ export class DashboardView {
         this.container.innerHTML = html;
     }
 
-    // 総資産額カード
-    generateTotalValueCard(totalValue) {
+    // 総資産額カード（評価損益の合計も表示）
+    generateTotalValueCard(totalValue, profitLoss) {
+        const hasProfit = profitLoss && Object.keys(profitLoss.byType).length > 0;
+
         return `
             <div class="total-value-card">
                 <div class="total-value-header">
                     <div>
                         <div class="total-value-label">総資産額</div>
                         <div class="total-value-amount">${formatters.formatCurrency(totalValue)}</div>
+                        ${hasProfit ? `
+                            <div class="total-value-profit">
+                                <span>評価損益</span>
+                                <strong>${formatters.formatProfitWithSign(profitLoss.totalProfit)}</strong>
+                                <span class="total-value-rate">${profitLoss.totalProfitRate >= 0 ? '+' : ''}${formatters.formatPercentage(profitLoss.totalProfitRate, 2)}</span>
+                            </div>
+                        ` : ''}
                     </div>
-                    <button class="btn btn-secondary" id="bulk-update-prices" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                    <button class="total-value-button" id="bulk-update-prices">
                         🔄 価格を一括更新
                     </button>
                 </div>
-                <div id="update-progress" style="margin-top: var(--spacing-md); display: none;">
-                    <div style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-xs);">
-                        更新中: <span id="progress-text">0/0</span>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.2); height: 4px; border-radius: 2px; overflow: hidden;">
-                        <div id="progress-bar" style="background: white; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                <div id="update-progress" class="update-progress" style="display: none;">
+                    <div class="update-progress-text">更新中: <span id="progress-text">0/0</span></div>
+                    <div class="update-progress-track">
+                        <div id="progress-bar" class="update-progress-bar"></div>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    // 資産タイプ別サマリーグリッド
+    // 資産タイプ別サマリーグリッド（評価額がある種類のみ）
     generateAssetSummaryGrid(allocation) {
+        const items = allocation.filter(item => item.value > 0);
+
         return `
             <div class="asset-summary-grid">
-                ${allocation.map(item => `
+                ${items.map(item => `
                     <div class="asset-summary-card">
-                        <div class="asset-summary-icon ${item.type}">
-                            ${ASSET_TYPE_ICONS[item.type]}
+                        <div class="asset-summary-top">
+                            <span class="asset-summary-icon ${item.type}">${ASSET_TYPE_ICONS[item.type]}</span>
+                            <span class="asset-summary-label">${item.label}</span>
                         </div>
-                        <div class="asset-summary-content">
-                            <div class="asset-summary-label">${item.label}</div>
-                            <div class="asset-summary-value">
-                                ${formatters.formatCurrency(item.value)}
+                        <div class="asset-summary-value">${formatters.formatCurrency(item.value)}</div>
+                        <div class="asset-summary-share">
+                            <div class="asset-summary-bar">
+                                <span class="${item.type}" style="width: ${Math.min(item.percentage, 100)}%;"></span>
                             </div>
-                            <div class="asset-summary-percentage">
-                                ${formatters.formatPercentage(item.percentage, 1)}
-                            </div>
+                            <span class="asset-summary-percentage">${formatters.formatPercentage(item.percentage, 1)}</span>
                         </div>
                     </div>
                 `).join('')}
@@ -94,43 +102,33 @@ export class DashboardView {
             return `
                 <div class="card">
                     <h3 class="card-title">評価損益</h3>
-                    <div class="empty-state-text" style="padding: var(--spacing-xl); text-align: center; color: var(--text-tertiary);">
-                        損益データなし
-                    </div>
+                    <div class="card-empty">損益データなし</div>
                 </div>
             `;
         }
+
+        const row = (label, profit, profitRate, isTotal = false) => `
+            <div class="profit-loss-item ${isTotal ? 'is-total' : ''}">
+                <div class="profit-loss-label">${label}</div>
+                <div class="profit-loss-value">
+                    <div class="profit-loss-amount ${formatters.getProfitClass(profit)}">
+                        ${formatters.formatProfitWithSign(profit)}
+                    </div>
+                    <span class="delta ${formatters.getProfitClass(profit)}">
+                        ${profitRate >= 0 ? '+' : ''}${formatters.formatPercentage(profitRate, 2)}
+                    </span>
+                </div>
+            </div>
+        `;
 
         return `
             <div class="profit-loss-card card">
                 <h3 class="card-title">評価損益</h3>
                 <div class="profit-loss-list">
-                    ${Object.values(profitLoss.byType).map(item => `
-                        <div class="profit-loss-item">
-                            <div class="profit-loss-label">
-                                ${ASSET_TYPE_ICONS[item.type]} ${item.label}
-                            </div>
-                            <div class="profit-loss-value">
-                                <div class="profit-loss-amount ${formatters.getProfitClass(item.profit)}">
-                                    ${formatters.formatProfitWithSign(item.profit)}
-                                </div>
-                                <div class="profit-loss-percentage">
-                                    ${formatters.formatPercentage(item.profitRate, 2)}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                    <div class="profit-loss-item" style="border-top: 2px solid var(--border-dark); font-weight: 600;">
-                        <div class="profit-loss-label">合計</div>
-                        <div class="profit-loss-value">
-                            <div class="profit-loss-amount ${formatters.getProfitClass(profitLoss.totalProfit)}">
-                                ${formatters.formatProfitWithSign(profitLoss.totalProfit)}
-                            </div>
-                            <div class="profit-loss-percentage">
-                                ${formatters.formatPercentage(profitLoss.totalProfitRate, 2)}
-                            </div>
-                        </div>
-                    </div>
+                    ${Object.values(profitLoss.byType).map(item =>
+                        row(`<span class="asset-summary-icon ${item.type}">${ASSET_TYPE_ICONS[item.type]}</span>${item.label}`, item.profit, item.profitRate)
+                    ).join('')}
+                    ${row('合計', profitLoss.totalProfit, profitLoss.totalProfitRate, true)}
                 </div>
             </div>
         `;
@@ -319,11 +317,11 @@ export class DashboardView {
     generateMonthlyTrendChart() {
         return `
             <div class="card">
-                <div class="monthly-trend-header">
-                    <h3 class="card-title" style="margin-bottom: 0;">月次資産推移</h3>
+                <div class="card-header">
+                    <h3 class="card-title">月次資産推移</h3>
                     <button class="btn btn-secondary btn-sm" id="export-monthly-csv">📥 CSV</button>
                 </div>
-                <div class="chart-wrapper" style="height: 300px; margin-top: var(--spacing-md);">
+                <div class="chart-wrapper monthly-chart-wrapper">
                     <canvas id="monthly-trend-chart"></canvas>
                 </div>
                 <div id="monthly-trend-table-container"></div>
@@ -416,58 +414,36 @@ export class DashboardView {
         return `
             <div class="card">
                 <h3 class="card-title">銘柄別集計</h3>
-                <div class="aggregated-assets-table" style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: var(--font-size-sm);">
+                <div class="table-scroll">
+                    <table class="data-table">
                         <thead>
-                            <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-dark);">
-                                <th style="padding: var(--spacing-sm); text-align: left;">銘柄</th>
-                                <th style="padding: var(--spacing-sm); text-align: left;">識別子</th>
-                                <th style="padding: var(--spacing-sm); text-align: right;">保有数</th>
-                                <th style="padding: var(--spacing-sm); text-align: right;">評価額</th>
-                                <th style="padding: var(--spacing-sm); text-align: right;">平均単価</th>
-                                <th style="padding: var(--spacing-sm); text-align: right;">現在単価</th>
-                                <th style="padding: var(--spacing-sm); text-align: right;">損益</th>
-                                <th style="padding: var(--spacing-sm); text-align: right;">損益率</th>
-                                <th style="padding: var(--spacing-sm); text-align: center;">件数</th>
+                            <tr>
+                                <th class="align-left">銘柄</th>
+                                <th>保有数</th>
+                                <th>評価額</th>
+                                <th>平均単価</th>
+                                <th>現在単価</th>
+                                <th>損益</th>
+                                <th>損益率</th>
+                                <th class="align-center">件数</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${displayAssets.map(item => `
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: var(--spacing-sm);">
-                                        <div style="display: flex; align-items: center; gap: var(--spacing-xs);">
-                                            <span>${ASSET_TYPE_ICONS[item.type]}</span>
-                                            <span>${formatters.escapeHtml(item.name)}</span>
+                                <tr>
+                                    <td class="align-left">
+                                        <div class="data-table-name">
+                                            <span class="data-table-title">${formatters.escapeHtml(item.name)}</span>
+                                            <span class="data-table-sub">${ASSET_TYPE_ICONS[item.type]} ${formatters.escapeHtml(item.ticker || item.fundCode || item.symbol || '-')}</span>
                                         </div>
                                     </td>
-                                    <td style="padding: var(--spacing-sm); color: var(--text-secondary); font-family: monospace;">
-                                        ${formatters.escapeHtml(item.ticker || item.fundCode || item.symbol || '-')}
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: right;">
-                                        ${formatters.formatNumber(item.totalQuantity, item.type === 'crypto' ? 8 : 0)}
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: right; font-weight: 600;">
-                                        ${formatters.formatCurrency(item.totalValue)}
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: right;">
-                                        ${formatters.formatCurrency(item.averagePrice)}
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: right;">
-                                        ${formatters.formatCurrency(item.currentPrice)}
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: right;">
-                                        <span class="${formatters.getProfitClass(item.profit)}">
-                                            ${formatters.formatProfitWithSign(item.profit)}
-                                        </span>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: right;">
-                                        <span class="${formatters.getProfitClass(item.profit)}">
-                                            ${formatters.formatPercentage(item.profitRate, 2)}
-                                        </span>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); text-align: center; color: var(--text-tertiary);">
-                                        ${item.count}
-                                    </td>
+                                    <td>${formatters.formatNumber(item.totalQuantity, item.type === 'crypto' ? 8 : 0)}</td>
+                                    <td class="is-strong">${formatters.formatCurrency(item.totalValue)}</td>
+                                    <td>${formatters.formatCurrency(item.averagePrice)}</td>
+                                    <td>${formatters.formatCurrency(item.currentPrice)}</td>
+                                    <td class="${formatters.getProfitClass(item.profit)}">${formatters.formatProfitWithSign(item.profit)}</td>
+                                    <td class="${formatters.getProfitClass(item.profit)}">${formatters.formatPercentage(item.profitRate, 2)}</td>
+                                    <td class="align-center muted">${item.count}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -489,13 +465,10 @@ export class DashboardView {
                 <div class="recent-assets-list">
                     ${recentAssets.map(asset => `
                         <div class="recent-asset-item">
+                            <span class="asset-summary-icon ${asset.type}">${ASSET_TYPE_ICONS[asset.type]}</span>
                             <div class="recent-asset-info">
-                                <div class="recent-asset-name">
-                                    ${ASSET_TYPE_ICONS[asset.type]} ${formatters.escapeHtml(asset.name)}
-                                </div>
-                                <div class="recent-asset-type">
-                                    ${formatters.formatRelativeTime(asset.updatedAt)}
-                                </div>
+                                <div class="recent-asset-name">${formatters.escapeHtml(asset.name)}</div>
+                                <div class="recent-asset-type">${ASSET_TYPE_LABELS[asset.type]} · ${formatters.formatRelativeTime(asset.updatedAt)}</div>
                             </div>
                             <div class="recent-asset-value">
                                 ${formatters.formatCurrency(asset.getCurrentValue(), asset.currency)}
@@ -513,9 +486,7 @@ export class DashboardView {
             <div class="empty-state">
                 <div class="empty-state-icon">📊</div>
                 <div class="empty-state-text">まだ資産が登録されていません</div>
-                <p style="color: var(--text-tertiary); margin: var(--spacing-md) 0;">
-                    最初の資産を登録して、資産管理を始めましょう
-                </p>
+                <p class="empty-state-hint">最初の資産を登録して、資産管理を始めましょう</p>
                 <button class="btn btn-primary" id="dashboard-add-asset">
                     資産を登録する
                 </button>

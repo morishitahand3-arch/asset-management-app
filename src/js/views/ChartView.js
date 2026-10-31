@@ -1,5 +1,7 @@
 // Chart View - Chart.js integration
 
+const FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Segoe UI", sans-serif';
+
 export class ChartView {
     constructor() {
         this.chartInstance = null;
@@ -70,7 +72,8 @@ export class ChartView {
         const chartConfig = {
             type: options.type || 'pie',
             data: chartData,
-            options: { ...defaultOptions, ...options.chartOptions }
+            options: { ...defaultOptions, ...options.chartOptions },
+            plugins: options.plugins || []
         };
 
         // Chart.jsが読み込まれているか確認
@@ -99,40 +102,117 @@ export class ChartView {
 
     // ドーナツグラフ生成
     renderDoughnutChart(canvasId, chartData) {
+        const formatYen = (v) => '¥' + new Intl.NumberFormat('ja-JP').format(Math.round(v));
+        const total = chartData.datasets[0].data.reduce((sum, v) => sum + v, 0);
+        const percent = (v) => total > 0 ? `${((v / total) * 100).toFixed(1)}%` : '0%';
+        const isNarrow = window.innerWidth < 600;
+
+        // 中央に合計額を表示するプラグイン
+        const centerText = {
+            id: 'centerText',
+            afterDraw(chart) {
+                const { ctx } = chart;
+                const meta = chart.getDatasetMeta(0);
+                if (!meta.data.length) return;
+                const { x, y } = meta.data[0];
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '600 11px ' + FONT_FAMILY;
+                ctx.fillText('合計', x, y - 12);
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '800 15px ' + FONT_FAMILY;
+                ctx.fillText(formatYen(total), x, y + 8);
+                ctx.restore();
+            }
+        };
+
         return this.renderChart(canvasId, chartData, {
             type: 'doughnut',
+            plugins: [centerText],
             chartOptions: {
+                cutout: '68%',
+                layout: { padding: 4 },
                 plugins: {
                     legend: {
-                        position: 'right'
+                        position: isNarrow ? 'bottom' : 'right',
+                        labels: {
+                            font: { family: FONT_FAMILY, size: 12 },
+                            color: '#475569',
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            padding: 14,
+                            // 凡例に構成比を表示
+                            generateLabels: (chart) => Chart.overrides.doughnut.plugins.legend.labels
+                                .generateLabels(chart)
+                                .map(label => ({ ...label, text: `${label.text}  ${percent(chart.data.datasets[0].data[label.index])}` }))
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (context) => ` ${context.label}  ${formatYen(context.parsed)} (${percent(context.parsed)})`
+                        }
                     }
-                },
-                cutout: '60%'
+                }
             }
         });
     }
 
     // 棒グラフ生成
     renderBarChart(canvasId, chartData, stacked = false) {
+        const formatYen = (v) => '¥' + new Intl.NumberFormat('ja-JP').format(Math.round(v));
+        // 軸ラベルは「120万」のように短く表示する
+        const formatAxis = (v) => v >= 10000 ? `${new Intl.NumberFormat('ja-JP').format(v / 10000)}万` : new Intl.NumberFormat('ja-JP').format(v);
+        const font = { family: FONT_FAMILY, size: 11 };
+        const tickColor = '#94a3b8';
+
         const chartOptions = {
+            interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
                     display: stacked, // 積み上げグラフの場合は凡例を表示
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        font: { ...font, size: 12 },
+                        color: '#475569',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        padding: 14
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                    padding: 10,
+                    cornerRadius: 8,
+                    usePointStyle: true,
+                    boxPadding: 4,
+                    filter: (item) => item.parsed.y > 0,
+                    callbacks: {
+                        label: (context) => ` ${context.dataset.label}  ${formatYen(context.parsed.y)}`
+                    }
                 }
             },
             scales: {
                 x: {
-                    stacked: stacked
+                    stacked: stacked,
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: { font, color: tickColor }
                 },
                 y: {
                     stacked: stacked,
                     beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return '¥' + new Intl.NumberFormat('ja-JP').format(value);
-                        }
-                    }
+                    grid: { color: 'rgba(148, 163, 184, 0.18)' },
+                    border: { display: false },
+                    ticks: { font, color: tickColor, maxTicksLimit: 6, callback: formatAxis }
                 }
             }
         };

@@ -128,6 +128,13 @@ class App {
 
         if (targetView) {
             targetView.style.display = 'block';
+
+            // メニューの選択状態を表示中の画面に合わせる（編集画面は資産一覧扱い）
+            const navView = viewName === 'edit-asset' ? 'assets' : viewName;
+            document.querySelectorAll('.sidebar-link, .nav-btn').forEach(link => {
+                link.classList.toggle('active', link.dataset.view === navView);
+            });
+            window.scrollTo(0, 0);
             console.log('View display set to block, actual value:', targetView.style.display);
             this.currentView = viewName;
 
